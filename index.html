@@ -418,12 +418,13 @@
       chatSub = db
         .channel('chat-' + grupoActual.id)
         .on('postgres_changes', {
-          event:  'INSERT',
+          event:  '*',
           schema: 'public',
-          table:  'mensajes',
-          filter: `grupo_id=eq.${grupoActual.id}`
+          table:  'mensajes'
         }, payload => {
+          if (payload.eventType !== 'INSERT') return;
           const m = payload.new;
+          if (!m || m.grupo_id !== grupoActual.id) return;
           // Evitar duplicados
           if (mensajesRendered.has(m.id)) return;
           mensajesRendered.add(m.id);
@@ -433,7 +434,9 @@
           $('mensajes').scrollTop = $('mensajes').scrollHeight;
           if (m.email !== usuario.email) mostrarNotificacion(m.autor, m.texto);
         })
-        .subscribe();
+        .subscribe(status => {
+          console.log('Chat realtime status:', status);
+        });
 
       // Cargar mensajes existentes
       const { data } = await db
