@@ -70,6 +70,7 @@
       <div class="topbar-brand"><div class="brand-icon">📚</div> GrupoEstudio</div>
       <div class="topbar-right">
         <button class="btn btn-ghost btn-sm" id="btn-ir-foro">💬 Foro</button>
+        <button class="btn btn-ghost btn-sm" id="btn-ir-ranking">🏆 Ranking</button>
         <div class="user-chip" id="btn-ir-perfil" style="cursor:pointer" title="Mi perfil">
           <div class="avatar-sm" id="inicio-avatar"></div>
           <span id="inicio-nombre"></span>
@@ -331,8 +332,29 @@
         </div>
       </div>
 
+      <!-- Estadísticas -->
+      <div class="form-card" style="margin-top:16px" id="perfil-stats-card">
+        <h3 style="margin-bottom:16px;font-family:var(--fhead)">⭐ Estadísticas</h3>
+        <div id="perfil-stats">Cargando...</div>
+      </div>
+
       <button class="btn" id="btn-guardar-perfil" style="width:100%;margin-top:16px">💾 Guardar cambios</button>
 
+    </div>
+  </div>
+
+  <!-- RANKING -->
+  <div class="pantalla oculto" id="pantalla-ranking">
+    <div class="topbar">
+      <div class="topbar-back" id="btn-volver-ranking">← Volver</div>
+      <div class="topbar-brand">🏆 Ranking</div>
+      <div style="width:80px"></div>
+    </div>
+    <div class="page-wrap">
+      <div class="page-header">
+        <div><h2>Tabla de líderes</h2><p class="page-sub">Los más activos de la comunidad</p></div>
+      </div>
+      <div id="lista-ranking"><p class="cargando">Cargando ranking...</p></div>
     </div>
   </div>
 
@@ -716,6 +738,23 @@
     const CLOUD_NAME    = 'dhtyvavcy';
     const CLOUD_PRESET  = 'grupoestudio';
 
+    // ── GAMIFICACIÓN ─────────────────────────────────────────────
+    const NIVELES = [
+      { nivel: 1, nombre: 'Novato',      min: 0,   emoji: '🌱' },
+      { nivel: 2, nombre: 'Estudiante',  min: 50,  emoji: '📖' },
+      { nivel: 3, nombre: 'Avanzado',    min: 150, emoji: '🎓' },
+      { nivel: 4, nombre: 'Experto',     min: 300, emoji: '⭐' },
+      { nivel: 5, nombre: 'Maestro',     min: 500, emoji: '🏆' }
+    ];
+
+    function getNivel(puntos) {
+      return [...NIVELES].reverse().find(n => puntos >= n.min) || NIVELES[0];
+    }
+
+    async function sumarPuntos(cantidad) {
+      await db.rpc('sumar_puntos', { usuario_id: usuario.id, cantidad });
+    }
+
     // ── SUBIR IMAGEN A CLOUDINARY ────────────────────────────────
     async function subirImagenCloudinary(file, carpeta) {
       const form = new FormData();
@@ -1061,6 +1100,7 @@
         texto
       }).then(({ error }) => {
         if (error) console.error('Error enviando mensaje:', error.message);
+        else sumarPuntos(2);
       });
     }
 
@@ -1129,6 +1169,7 @@
         });
 
         $('file-input').value = '';
+        sumarPuntos(5);
         cargarArchivos();
       } catch(e) {
         alert('Error al subir: ' + e.message);
@@ -1277,9 +1318,34 @@
       return perfilData;
     }
 
-    function mostrarPantallaPeril() {
+    async function mostrarPantallaPeril() {
       ir('pantalla-perfil');
       if (!perfilData) return;
+
+      // Stats
+      const { data: stats } = await db.from('perfil_usuario').select('puntos, nivel').eq('id', usuario.id).single();
+      if (stats) {
+        const niv = getNivel(stats.puntos || 0);
+        $('perfil-stats').innerHTML = `
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-val">${stats.puntos || 0}</span>
+              <span class="stat-label">Puntos</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-val">${niv.emoji} ${niv.nombre}</span>
+              <span class="stat-label">Nivel ${niv.nivel}</span>
+            </div>
+          </div>
+          <div class="nivel-bar-wrap">
+            <div class="nivel-bar">
+              <div class="nivel-bar-fill" style="width:${Math.min(100, ((stats.puntos||0) / (NIVELES[Math.min(niv.nivel, 4)].min || 1)) * 100)}%"></div>
+            </div>
+            <span style="font-size:11px;color:var(--muted)">
+              ${niv.nivel < 5 ? `${stats.puntos||0} / ${NIVELES[niv.nivel].min} pts para ${NIVELES[niv.nivel].emoji} ${NIVELES[niv.nivel].nombre}` : '¡Nivel máximo! 🎉'}
+            </span>
+          </div>`;
+      }
 
       // Avatar
       const av = $('perfil-avatar-grande');
@@ -1380,6 +1446,31 @@
       $('priv-email').checked     = perfil.mostrar_email    || false;
       $('priv-telefono').checked  = perfil.mostrar_telefono || false;
 
+      // Stats
+      const { data: stats } = await db.from('perfil_usuario').select('puntos, nivel').eq('id', usuario.id).single();
+      if (stats) {
+        const niv = getNivel(stats.puntos || 0);
+        $('perfil-stats').innerHTML = `
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-val">${stats.puntos || 0}</span>
+              <span class="stat-label">Puntos</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-val">${niv.emoji} ${niv.nombre}</span>
+              <span class="stat-label">Nivel ${niv.nivel}</span>
+            </div>
+          </div>
+          <div class="nivel-bar-wrap">
+            <div class="nivel-bar">
+              <div class="nivel-bar-fill" style="width:${Math.min(100, ((stats.puntos||0) / (NIVELES[Math.min(niv.nivel, 4)].min || 1)) * 100)}%"></div>
+            </div>
+            <span style="font-size:11px;color:var(--muted)">
+              ${niv.nivel < 5 ? `${stats.puntos||0} / ${NIVELES[niv.nivel].min} pts para ${NIVELES[niv.nivel].emoji} ${NIVELES[niv.nivel].nombre}` : '¡Nivel máximo! 🎉'}
+            </span>
+          </div>`;
+      }
+
       // Avatar
       const av = $('perfil-avatar-grande');
       if (perfil.avatar_url) {
@@ -1443,6 +1534,38 @@
 
       alert('✅ Perfil guardado');
     };
+
+    // ── RANKING ─────────────────────────────────────────────────
+    $('btn-ir-ranking').onclick   = () => { ir('pantalla-ranking'); cargarRanking(); };
+    $('btn-volver-ranking').onclick = () => ir('pantalla-inicio');
+
+    async function cargarRanking() {
+      cargando('lista-ranking');
+      const { data } = await db
+        .from('perfil_usuario')
+        .select('nombre, email, puntos, nivel, avatar_url')
+        .order('puntos', { ascending: false })
+        .limit(20);
+
+      if (!data || data.length === 0) { vacio('lista-ranking', '🏆', 'Todavía no hay puntuaciones.'); return; }
+
+      const medallas = ['🥇', '🥈', '🥉'];
+      $('lista-ranking').innerHTML = data.map((p, i) => {
+        const niv    = getNivel(p.puntos);
+        const avatar = p.avatar_url
+          ? `<img src="${p.avatar_url}" style="width:40px;height:40px;border-radius:50%;object-fit:cover" />`
+          : `<div class="ranking-avatar">${(p.nombre||'?')[0].toUpperCase()}</div>`;
+        return `<div class="ranking-item ${p.email === usuario.email ? 'ranking-yo' : ''}">
+          <span class="ranking-pos">${medallas[i] || (i+1)}</span>
+          ${avatar}
+          <div class="ranking-datos">
+            <span class="ranking-nombre">${p.nombre} ${p.email === usuario.email ? '<span class="badge-vos">Vos</span>' : ''}</span>
+            <span class="ranking-nivel">${niv.emoji} ${niv.nombre}</span>
+          </div>
+          <span class="ranking-pts">${p.puntos} pts</span>
+        </div>`;
+      }).join('');
+    }
 
     // ── FORO ────────────────────────────────────────────────────
     let categoriaActual  = '';
@@ -1529,6 +1652,7 @@
       });
 
       if (error) { alert('Error: ' + error.message); return; }
+      sumarPuntos(3);
       $('btn-cancelar-pregunta').click();
       cargarPreguntas();
     };
@@ -1638,8 +1762,18 @@
       document.querySelectorAll('.btn-correcta').forEach(btn => {
         btn.addEventListener('click', async () => {
           const id = btn.dataset.id;
+          // Buscar email del autor de la respuesta para darle puntos
+          const resp = data.find(r => r.id === id);
           await db.from('foro_respuestas').update({ es_correcta: true }).eq('id', id);
           await db.from('foro_preguntas').update({ resuelto: true }).eq('id', preguntaActual.id);
+          // +15 pts al autor de la respuesta correcta
+          if (resp && resp.autor_email === usuario.email) {
+            sumarPuntos(15);
+          } else if (resp) {
+            // Buscar el id del autor de la respuesta y sumarle puntos
+            const { data: perfilResp } = await db.from('perfil_usuario').select('id').eq('email', resp.autor_email).single();
+            if (perfilResp) await db.rpc('sumar_puntos', { usuario_id: perfilResp.id, cantidad: 15 });
+          }
           preguntaActual.resuelto = true;
           abrirPregunta(preguntaActual.id);
         });
@@ -1665,6 +1799,7 @@
         autor_email: usuario.email
       });
 
+      sumarPuntos(5);
       $('resp-texto').value = '';
       $('resp-foto').value  = '';
       $('resp-foto-preview').innerHTML = '';
