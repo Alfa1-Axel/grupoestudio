@@ -447,6 +447,9 @@ select option { background: var(--surface2); }
   top: 110px;
   left: 0; right: 0; bottom: 0;
   width: 100%;
+  /* En móvil el teclado virtual no mueve el layout */
+  height: calc(100dvh - 110px);
+  overflow: hidden;
 }
 .mensajes {
   flex: 1;
