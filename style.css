@@ -837,3 +837,66 @@ textarea::placeholder { color: var(--muted); }
   font-family: var(--fbody);
 }
 .btn-correcta:hover { background: rgba(34,211,160,0.2); }
+
+/* ── Fotos en chat y foro ── */
+.btn-foto-chat {
+  flex-shrink: 0;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  font-size: 18px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  user-select: none;
+}
+.btn-foto-chat:hover { border-color: var(--accent); background: rgba(79,142,247,0.08); }
+
+.msg-img {
+  max-width: 220px;
+  max-height: 220px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: block;
+  margin: 4px 0;
+  object-fit: cover;
+  transition: opacity 0.2s;
+}
+.msg-img:hover { opacity: 0.88; }
+
+.foro-img {
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: block;
+  margin: 10px 0;
+  object-fit: contain;
+  border: 1px solid var(--border);
+  transition: opacity 0.2s;
+}
+.foro-img:hover { opacity: 0.88; }
+
+.upload-label-foro {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface2);
+  border: 1px dashed var(--border2);
+  border-radius: var(--r);
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--muted2);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.upload-label-foro:hover { border-color: var(--accent); color: var(--accent); }
+
+.foto-preview {
+  max-width: 160px;
+  max-height: 120px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}

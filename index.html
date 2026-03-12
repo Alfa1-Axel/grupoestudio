@@ -124,6 +124,10 @@
     <div class="tab-content" id="tab-chat">
       <div class="mensajes" id="mensajes"></div>
       <div class="chat-input-wrap">
+        <label class="btn-foto-chat" title="Enviar foto">
+          📷
+          <input type="file" id="chat-foto-input" accept="image/*" style="display:none" />
+        </label>
         <input type="text" id="msg-input" placeholder="Escribí un mensaje..." />
         <button class="btn" id="btn-enviar">Enviar</button>
       </div>
@@ -237,6 +241,14 @@
             <option value="Otro">📌 Otro</option>
           </select>
         </div>
+        <div class="input-group">
+          <label>Imagen (opcional)</label>
+          <label class="upload-label-foro">
+            📷 Adjuntar imagen
+            <input type="file" id="preg-foto" accept="image/*" style="display:none" />
+          </label>
+          <div id="preg-foto-preview" style="margin-top:8px"></div>
+        </div>
         <div class="form-row">
           <button class="btn btn-sm" id="btn-publicar-pregunta">Publicar pregunta</button>
           <button class="btn btn-ghost btn-sm" id="btn-cancelar-pregunta">Cancelar</button>
@@ -259,6 +271,13 @@
           <label>Tu respuesta</label>
           <textarea id="resp-texto" rows="3" placeholder="Escribí tu respuesta..."></textarea>
         </div>
+        <div class="input-group">
+          <label class="upload-label-foro">
+            📷 Adjuntar imagen (opcional)
+            <input type="file" id="resp-foto" accept="image/*" style="display:none" />
+          </label>
+          <div id="resp-foto-preview" style="margin-top:8px"></div>
+        </div>
         <button class="btn btn-sm" id="btn-publicar-respuesta">Publicar respuesta</button>
       </div>
     </div>
@@ -272,6 +291,17 @@
 
     const CLOUD_NAME    = 'dhtyvavcy';
     const CLOUD_PRESET  = 'grupoestudio';
+
+    // ── SUBIR IMAGEN A CLOUDINARY ────────────────────────────────
+    async function subirImagenCloudinary(file, carpeta) {
+      const form = new FormData();
+      form.append('file',           file);
+      form.append('upload_preset',  CLOUD_PRESET);
+      form.append('folder',         'grupoestudio/' + carpeta);
+      const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: form });
+      const data = await res.json();
+      return data.secure_url;
+    }
 
     // ── ESTADO ──────────────────────────────────────────────────
     let usuario     = null;
@@ -556,15 +586,41 @@
       const hora = m.hora
         ? new Date(m.hora).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
         : '';
+      const contenido = m.imagen_url
+        ? `<img src="${m.imagen_url}" class="msg-img" onclick="window.open('${m.imagen_url}','_blank')" />`
+        : `<div class="texto">${m.texto}</div>`;
       return `<div class="mensaje ${esPropio ? 'propio' : 'otro'}">
         ${!esPropio ? `<div class="autor">${m.autor}</div>` : ''}
-        <div class="texto">${m.texto}</div>
+        ${contenido}
         <div class="hora">${hora}</div>
       </div>`;
     }
 
     $('btn-enviar').onclick = enviarMensaje;
     $('msg-input').addEventListener('keypress', e => { if (e.key === 'Enter') enviarMensaje(); });
+
+    // Enviar foto en chat
+    $('chat-foto-input').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file || !grupoActual) return;
+      e.target.value = '';
+      const btn = document.querySelector('.btn-foto-chat');
+      btn.textContent = '⏳';
+      try {
+        const url = await subirImagenCloudinary(file, grupoActual.id);
+        db.from('mensajes').insert({
+          grupo_id:   grupoActual.id,
+          autor:      usuario.nombre,
+          email:      usuario.email,
+          texto:      '',
+          imagen_url: url
+        }).then(({ error }) => { if (error) console.error(error); });
+      } catch(err) {
+        alert('Error subiendo imagen');
+      } finally {
+        btn.textContent = '📷';
+      }
+    });
 
     async function enviarMensaje() {
       const texto = $('msg-input').value.trim();
@@ -817,16 +873,41 @@
       $('form-pregunta').classList.add('oculto');
       $('preg-titulo').value = '';
       $('preg-desc').value   = '';
+      $('preg-foto-preview').innerHTML = '';
+      $('preg-foto').value = '';
     };
 
+    // Preview imagen pregunta
+    $('preg-foto').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      $('preg-foto-preview').innerHTML = `<img src="${url}" class="foto-preview" />`;
+    });
+
+    // Preview imagen respuesta
+    $('resp-foto').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      $('resp-foto-preview').innerHTML = `<img src="${url}" class="foto-preview" />`;
+    });
+
     $('btn-publicar-pregunta').onclick = async () => {
-      const titulo    = $('preg-titulo').value.trim();
+      const titulo      = $('preg-titulo').value.trim();
       const descripcion = $('preg-desc').value.trim();
-      const categoria = $('preg-categoria').value;
+      const categoria   = $('preg-categoria').value;
       if (!titulo || !descripcion) return alert('Completá título y descripción');
 
+      let imagen_url = null;
+      const fotoFile = $('preg-foto').files[0];
+      if (fotoFile) {
+        try { imagen_url = await subirImagenCloudinary(fotoFile, 'foro'); }
+        catch(e) { alert('Error subiendo imagen'); return; }
+      }
+
       const { error } = await db.from('foro_preguntas').insert({
-        titulo, descripcion, categoria,
+        titulo, descripcion, categoria, imagen_url,
         autor:       usuario.nombre,
         autor_email: usuario.email
       });
@@ -883,6 +964,7 @@
             ${p.resuelto ? '<span class="resuelta-badge">✅ Resuelta</span>' : ''}
           </div>
           <h2>${p.titulo}</h2>
+          ${p.imagen_url ? `<img src="${p.imagen_url}" class="foro-img" onclick="window.open('${p.imagen_url}','_blank')" />` : ''}
           <p style="color:var(--muted2);margin:12px 0;line-height:1.7">${p.descripcion}</p>
           <div class="pregunta-meta">
             <span>👤 ${p.autor}</span>
@@ -911,6 +993,7 @@
       $('lista-respuestas').innerHTML = data.map(r => `
         <div class="respuesta-card ${r.es_correcta ? 'correcta' : ''}">
           ${r.es_correcta ? '<div class="correcta-banner">✅ Respuesta correcta</div>' : ''}
+          ${r.imagen_url ? `<img src="${r.imagen_url}" class="foro-img" onclick="window.open('${r.imagen_url}','_blank')" />` : ''}
           <p class="respuesta-texto">${r.texto}</p>
           <div class="respuesta-meta">
             <span>👤 ${r.autor}</span>
@@ -948,17 +1031,27 @@
     }
 
     $('btn-publicar-respuesta').onclick = async () => {
-      const texto = $('resp-texto').value.trim();
-      if (!texto) return alert('Escribí tu respuesta');
+      const texto    = $('resp-texto').value.trim();
+      const fotoFile = $('resp-foto').files[0];
+      if (!texto && !fotoFile) return alert('Escribí una respuesta o adjuntá una imagen');
+
+      let imagen_url = null;
+      if (fotoFile) {
+        try { imagen_url = await subirImagenCloudinary(fotoFile, 'foro'); }
+        catch(e) { alert('Error subiendo imagen'); return; }
+      }
 
       await db.from('foro_respuestas').insert({
         pregunta_id: preguntaActual.id,
-        texto,
+        texto:       texto || '',
+        imagen_url,
         autor:       usuario.nombre,
         autor_email: usuario.email
       });
 
       $('resp-texto').value = '';
+      $('resp-foto').value  = '';
+      $('resp-foto-preview').innerHTML = '';
       cargarRespuestas(preguntaActual.id);
     };
 
