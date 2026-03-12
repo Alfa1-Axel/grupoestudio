@@ -624,3 +624,44 @@ select option { background: var(--surface2); }
 *::-webkit-scrollbar       { width: 4px; }
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ── ONLINE BADGE (topbar) ── */
+.topbar-right-grupo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.online-badge {
+  background: rgba(34,211,160,0.1);
+  border: 1px solid rgba(34,211,160,0.25);
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* ── DOTS ONLINE/OFFLINE ── */
+.dot-online, .dot-offline {
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+}
+.dot-online  { background: var(--green); }
+.dot-offline { background: var(--muted); }
+
+/* ── BADGE ONLINE en miembros ── */
+.badge-online {
+  background: rgba(34,211,160,0.1);
+  border: 1px solid rgba(34,211,160,0.22);
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+}

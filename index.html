@@ -103,9 +103,12 @@
     <div class="topbar">
       <div class="topbar-back" id="btn-volver">← Volver</div>
       <span class="topbar-titulo" id="grupo-titulo"></span>
-      <div class="user-chip">
-        <div class="avatar-sm" id="grupo-avatar"></div>
-        <span id="grupo-nombre-usuario"></span>
+      <div class="topbar-right-grupo">
+        <span id="online-badge" class="online-badge">🟢 1 online</span>
+        <div class="user-chip">
+          <div class="avatar-sm" id="grupo-avatar"></div>
+          <span id="grupo-nombre-usuario"></span>
+        </div>
       </div>
     </div>
 
@@ -321,6 +324,49 @@
       cargarGrupos();
     };
 
+    // ── PRESENCIA ONLINE ────────────────────────────────────────
+    let presenceSub = null;
+    let onlineUsers = new Set();
+
+    function iniciarPresencia(grupoId) {
+      if (presenceSub) presenceSub.unsubscribe();
+      presenceSub = db
+        .channel('presencia-' + grupoId, { config: { presence: { key: usuario.email } } })
+        .on('presence', { event: 'sync' }, () => {
+          const state = presenceSub.presenceState();
+          onlineUsers = new Set(Object.keys(state));
+          actualizarOnlineBadge();
+          if (!$('tab-miembros').classList.contains('oculto')) cargarMiembros();
+        })
+        .subscribe(async status => {
+          if (status === 'SUBSCRIBED') {
+            await presenceSub.track({ nombre: usuario.nombre, email: usuario.email });
+          }
+        });
+    }
+
+    function actualizarOnlineBadge() {
+      const badge = $('online-badge');
+      if (badge) badge.textContent = '🟢 ' + onlineUsers.size + ' online';
+    }
+
+    // ── NOTIFICACIONES ──────────────────────────────────────────
+    let notifPermiso = false;
+
+    async function pedirPermisoNotificaciones() {
+      if (!('Notification' in window)) return;
+      if (Notification.permission === 'granted') { notifPermiso = true; return; }
+      if (Notification.permission !== 'denied') {
+        const result = await Notification.requestPermission();
+        notifPermiso = result === 'granted';
+      }
+    }
+
+    function mostrarNotificacion(autor, texto) {
+      if (!notifPermiso || document.visibilityState === 'visible') return;
+      new Notification('📚 ' + autor + ' en ' + grupoActual?.nombre, { body: texto });
+    }
+
     // ── ENTRAR AL GRUPO ─────────────────────────────────────────
     function entrarGrupo(id, nombre) {
       grupoActual = { id, nombre };
@@ -331,13 +377,17 @@
       $('grupo-avatar').textContent         = usuario.nombre[0].toUpperCase();
       $('grupo-nombre-usuario').textContent = usuario.nombre;
 
+      pedirPermisoNotificaciones();
+      iniciarPresencia(id);
       activarTab('chat');
       escucharMensajes();
     }
 
     $('btn-volver').onclick = () => {
-      if (chatSub) chatSub.unsubscribe();
+      if (chatSub)     chatSub.unsubscribe();
+      if (presenceSub) presenceSub.unsubscribe();
       grupoActual = null;
+      onlineUsers = new Set();
       ir('pantalla-inicio');
     };
 
@@ -397,6 +447,8 @@
       if (vac) $('mensajes').innerHTML = '';
       $('mensajes').insertAdjacentHTML('beforeend', htmlMensaje(m));
       $('mensajes').scrollTop = $('mensajes').scrollHeight;
+      // Notificar si el mensaje es de otro
+      if (m.email !== usuario.email) mostrarNotificacion(m.autor, m.texto);
     }
 
     function htmlMensaje(m) {
@@ -599,14 +651,20 @@
 
       if (miembros.length === 0) { vacio('lista-miembros', '👥', 'Sin miembros.'); return; }
 
-      $('lista-miembros').innerHTML = miembros.map(email => `
-        <div class="miembro-item">
-          <div class="miembro-avatar">${email[0].toUpperCase()}</div>
+      $('lista-miembros').innerHTML = miembros.map(email => {
+        const isOnline = onlineUsers.has(email);
+        return `<div class="miembro-item">
+          <div class="miembro-avatar" style="position:relative">
+            ${email[0].toUpperCase()}
+            ${isOnline ? '<span class="dot-online"></span>' : '<span class="dot-offline"></span>'}
+          </div>
           <div class="miembro-datos">
             <span>${email}</span>
             ${email === usuario.email ? '<span class="badge-vos">Vos</span>' : ''}
+            ${isOnline ? '<span class="badge-online">online</span>' : ''}
           </div>
-        </div>`).join('');
+        </div>`;
+      }).join('');
     }
 
   </script>
