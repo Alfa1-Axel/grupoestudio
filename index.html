@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GrupoEstudio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+
+  <!-- LOGIN -->
+  <div class="pantalla" id="pantalla-login">
+    <div class="auth-wrap">
+      <div class="auth-logo">
+        <div class="logo-icon">📚</div>
+        <h1>GrupoEstudio</h1>
+        <p>La app para estudiar en equipo</p>
+      </div>
+      <div class="auth-card">
+        <div class="input-group">
+          <label>Correo electrónico</label>
+          <input type="email" id="login-email" placeholder="tu@correo.com" />
+        </div>
+        <div class="input-group">
+          <label>Contraseña</label>
+          <input type="password" id="login-pass" placeholder="••••••••" />
+        </div>
+        <button class="btn" id="btn-login">Iniciar sesión</button>
+        <p class="auth-switch">¿No tenés cuenta? <span onclick="ir('pantalla-registro')">Registrate</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGISTRO -->
+  <div class="pantalla oculto" id="pantalla-registro">
+    <div class="auth-wrap">
+      <div class="auth-logo">
+        <div class="logo-icon">📚</div>
+        <h1>Crear cuenta</h1>
+        <p>Unite a GrupoEstudio</p>
+      </div>
+      <div class="auth-card">
+        <div class="input-group">
+          <label>Tu nombre</label>
+          <input type="text" id="reg-nombre" placeholder="¿Cómo te llamás?" />
+        </div>
+        <div class="input-group">
+          <label>Correo electrónico</label>
+          <input type="email" id="reg-email" placeholder="tu@correo.com" />
+        </div>
+        <div class="input-group">
+          <label>Contraseña</label>
+          <input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres" />
+        </div>
+        <button class="btn" id="btn-registro">Crear cuenta</button>
+        <p class="auth-switch">¿Ya tenés cuenta? <span onclick="ir('pantalla-login')">Iniciá sesión</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- INICIO -->
+  <div class="pantalla oculto" id="pantalla-inicio">
+    <div class="topbar">
+      <div class="topbar-brand"><div class="brand-icon">📚</div> GrupoEstudio</div>
+      <div class="topbar-right">
+        <div class="user-chip">
+          <div class="avatar-sm" id="inicio-avatar"></div>
+          <span id="inicio-nombre"></span>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btn-salir">Salir</button>
+      </div>
+    </div>
+    <div class="page-wrap">
+      <div class="page-header">
+        <div>
+          <h2>Mis Grupos</h2>
+          <p class="page-sub">Tus espacios de estudio colaborativo</p>
+        </div>
+        <button class="btn btn-sm" id="btn-nuevo-grupo">+ Nuevo grupo</button>
+      </div>
+      <div class="form-card oculto" id="form-grupo">
+        <div class="form-row">
+          <input type="text" id="nuevo-nombre" placeholder="Nombre del grupo" />
+          <input type="text" id="nuevo-materia" placeholder="Materia" />
+        </div>
+        <div class="form-row">
+          <button class="btn btn-sm" id="btn-crear-grupo">Crear grupo</button>
+          <button class="btn btn-ghost btn-sm" id="btn-cancelar-grupo">Cancelar</button>
+        </div>
+      </div>
+      <div id="lista-grupos"><p class="cargando">Cargando grupos...</p></div>
+    </div>
+  </div>
+
+  <!-- GRUPO -->
+  <div class="pantalla oculto" id="pantalla-grupo">
+    <div class="topbar">
+      <div class="topbar-back" id="btn-volver">← Volver</div>
+      <span class="topbar-titulo" id="grupo-titulo"></span>
+      <div class="user-chip">
+        <div class="avatar-sm" id="grupo-avatar"></div>
+        <span id="grupo-nombre-usuario"></span>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn activo" data-tab="chat">💬 Chat</button>
+      <button class="tab-btn" data-tab="archivos">📂 Archivos</button>
+      <button class="tab-btn" data-tab="calendario">📅 Calendario</button>
+      <button class="tab-btn" data-tab="miembros">👥 Miembros</button>
+    </div>
+
+    <!-- CHAT -->
+    <div class="tab-content" id="tab-chat">
+      <div class="mensajes" id="mensajes"></div>
+      <div class="chat-input-wrap">
+        <input type="text" id="msg-input" placeholder="Escribí un mensaje..." />
+        <button class="btn" id="btn-enviar">Enviar</button>
+      </div>
+    </div>
+
+    <!-- ARCHIVOS -->
+    <div class="tab-content oculto" id="tab-archivos">
+      <div class="tab-inner">
+        <div class="section-header">
+          <h3>Archivos del grupo</h3>
+          <span class="limite-info">Máx. 10MB por archivo</span>
+        </div>
+        <div class="upload-row">
+          <input type="file" id="file-input" accept="*/*" />
+          <button class="btn btn-sm" id="btn-subir">Subir archivo</button>
+        </div>
+        <div id="lista-archivos"></div>
+      </div>
+    </div>
+
+    <!-- CALENDARIO -->
+    <div class="tab-content oculto" id="tab-calendario">
+      <div class="tab-inner">
+        <div class="section-header">
+          <h3>Eventos del grupo</h3>
+          <button class="btn btn-sm" id="btn-nuevo-evento">+ Evento</button>
+        </div>
+        <div class="form-card oculto" id="form-evento">
+          <input type="text" id="evento-titulo" placeholder="Título (ej: Parcial Programación)" />
+          <div class="form-row">
+            <input type="date" id="evento-fecha" />
+            <select id="evento-tipo">
+              <option value="parcial">📝 Parcial</option>
+              <option value="reunion">👥 Reunión</option>
+              <option value="entrega">📌 Entrega</option>
+              <option value="examen">🎯 Examen Final</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <button class="btn btn-sm" id="btn-crear-evento">Guardar evento</button>
+            <button class="btn btn-ghost btn-sm" id="btn-cancelar-evento">Cancelar</button>
+          </div>
+        </div>
+        <div id="lista-eventos"></div>
+      </div>
+    </div>
+
+    <!-- MIEMBROS -->
+    <div class="tab-content oculto" id="tab-miembros">
+      <div class="tab-inner">
+        <div class="section-header">
+          <h3>Miembros del grupo</h3>
+        </div>
+        <div class="upload-row">
+          <input type="email" id="nuevo-miembro-email" placeholder="Correo del nuevo miembro" />
+          <button class="btn btn-sm" id="btn-agregar-miembro">+ Agregar</button>
+        </div>
+        <div id="lista-miembros"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── SUPABASE CONFIG ─────────────────────────────────────────
+    const SUPABASE_URL  = 'https://zfxmzqwlcvtrsbvzhgjj.supabase.co';
+    const SUPABASE_KEY  = 'sb_publishable_UE_DedafRcof_6fNuKfSvw_qiqVX7at';
+    const db            = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const CLOUD_NAME    = 'dhtyvavcy';
+    const CLOUD_PRESET  = 'grupoestudio';
+
+    // ── ESTADO ──────────────────────────────────────────────────
+    let usuario     = null;
+    let grupoActual = null;
+    let chatSub     = null;
+
+    // ── UTILIDADES ──────────────────────────────────────────────
+    const $ = id => document.getElementById(id);
+
+    function ir(pantalla) {
+      document.querySelectorAll('.pantalla').forEach(p => p.classList.add('oculto'));
+      $(pantalla).classList.remove('oculto');
+    }
+
+    function vacio(id, icono, texto) {
+      $(id).innerHTML = `<div class="vacio"><span>${icono}</span>${texto}</div>`;
+    }
+
+    function cargando(id) {
+      $(id).innerHTML = `<p class="cargando">Cargando...</p>`;
+    }
+
+    // ── AUTH ────────────────────────────────────────────────────
+    db.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        usuario = session.user;
+        // El nombre está en user_metadata
+        usuario.nombre = session.user.user_metadata?.nombre || session.user.email;
+        await cargarInicio();
+      } else {
+        usuario = null;
+        ir('pantalla-login');
+      }
+    });
+
+    $('btn-login').onclick = async () => {
+      const email = $('login-email').value.trim();
+      const pass  = $('login-pass').value;
+      if (!email || !pass) return alert('Completá todos los campos');
+      const { error } = await db.auth.signInWithPassword({ email, password: pass });
+      if (error) alert('Correo o contraseña incorrectos');
+    };
+
+    $('btn-registro').onclick = async () => {
+      const nombre = $('reg-nombre').value.trim();
+      const email  = $('reg-email').value.trim();
+      const pass   = $('reg-pass').value;
+      if (!nombre || !email || !pass) return alert('Completá todos los campos');
+      if (pass.length < 6) return alert('La contraseña debe tener al menos 6 caracteres');
+      const { error } = await db.auth.signUp({
+        email, password: pass,
+        options: { data: { nombre } }
+      });
+      if (error) {
+        if (error.message.includes('already')) alert('Ya existe una cuenta con ese correo');
+        else alert('Error: ' + error.message);
+      } else {
+        alert('✅ Cuenta creada. Revisá tu correo para confirmar (o iniciá sesión directamente si lo tenés desactivado).');
+        ir('pantalla-login');
+      }
+    };
+
+    $('btn-salir').onclick = () => db.auth.signOut();
+
+    // ── INICIO ──────────────────────────────────────────────────
+    async function cargarInicio() {
+      ir('pantalla-inicio');
+      const inicial = usuario.nombre[0].toUpperCase();
+      $('inicio-avatar').textContent = inicial;
+      $('inicio-nombre').textContent = usuario.nombre;
+      cargarGrupos();
+    }
+
+    // ── GRUPOS ──────────────────────────────────────────────────
+    async function cargarGrupos() {
+      cargando('lista-grupos');
+      const { data, error } = await db
+        .from('grupos')
+        .select('*')
+        .contains('miembros', [usuario.email])
+        .order('creado_el', { ascending: false });
+
+      if (error) {
+        $('lista-grupos').innerHTML = `<p class="cargando" style="color:var(--red)">Error: ${error.message}</p>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        vacio('lista-grupos', '📭', 'Todavía no tenés grupos. ¡Creá el primero!');
+        return;
+      }
+
+      $('lista-grupos').innerHTML = data.map(g => `
+        <div class="grupo-card" data-id="${g.id}" data-nombre="${g.nombre}">
+          <div class="grupo-info">
+            <h3>📘 ${g.nombre}</h3>
+            <p>${g.materia} · Creado por ${g.creador}</p>
+          </div>
+          <span class="tag">Entrar →</span>
+        </div>`).join('');
+
+      document.querySelectorAll('.grupo-card').forEach(card => {
+        card.addEventListener('click', () => entrarGrupo(card.dataset.id, card.dataset.nombre));
+      });
+    }
+
+    $('btn-nuevo-grupo').onclick = () => $('form-grupo').classList.toggle('oculto');
+
+    $('btn-cancelar-grupo').onclick = () => {
+      $('form-grupo').classList.add('oculto');
+      $('nuevo-nombre').value  = '';
+      $('nuevo-materia').value = '';
+    };
+
+    $('btn-crear-grupo').onclick = async () => {
+      const nombre  = $('nuevo-nombre').value.trim();
+      const materia = $('nuevo-materia').value.trim();
+      if (!nombre || !materia) return alert('Completá nombre y materia');
+
+      const { error } = await db.from('grupos').insert({
+        nombre, materia,
+        creador:       usuario.nombre,
+        creador_email: usuario.email,
+        miembros:      [usuario.email]
+      });
+
+      if (error) { alert('Error: ' + error.message); return; }
+      $('btn-cancelar-grupo').click();
+      cargarGrupos();
+    };
+
+    // ── ENTRAR AL GRUPO ─────────────────────────────────────────
+    function entrarGrupo(id, nombre) {
+      grupoActual = { id, nombre };
+      if (chatSub) chatSub.unsubscribe();
+
+      ir('pantalla-grupo');
+      $('grupo-titulo').textContent         = nombre;
+      $('grupo-avatar').textContent         = usuario.nombre[0].toUpperCase();
+      $('grupo-nombre-usuario').textContent = usuario.nombre;
+
+      activarTab('chat');
+      escucharMensajes();
+    }
+
+    $('btn-volver').onclick = () => {
+      if (chatSub) chatSub.unsubscribe();
+      grupoActual = null;
+      ir('pantalla-inicio');
+    };
+
+    // ── TABS ────────────────────────────────────────────────────
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => activarTab(btn.dataset.tab));
+    });
+
+    function activarTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('activo'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.add('oculto'));
+      document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('activo');
+      $('tab-' + tab).classList.remove('oculto');
+      if (tab === 'archivos')   cargarArchivos();
+      if (tab === 'calendario') cargarEventos();
+      if (tab === 'miembros')   cargarMiembros();
+    }
+
+    // ── CHAT ────────────────────────────────────────────────────
+    async function escucharMensajes() {
+      cargando('mensajes');
+
+      // Cargar mensajes existentes
+      const { data } = await db
+        .from('mensajes')
+        .select('*')
+        .eq('grupo_id', grupoActual.id)
+        .order('hora', { ascending: true });
+
+      renderMensajes(data || []);
+
+      // Escuchar nuevos mensajes en tiempo real
+      chatSub = db
+        .channel('mensajes-' + grupoActual.id)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'mensajes',
+          filter: `grupo_id=eq.${grupoActual.id}`
+        }, payload => {
+          agregarMensaje(payload.new);
+        })
+        .subscribe();
+    }
+
+    function renderMensajes(mensajes) {
+      if (mensajes.length === 0) {
+        $('mensajes').innerHTML = '<div class="vacio" style="margin:auto">💬 Nadie escribió todavía.<br>¡Sé el primero!</div>';
+        return;
+      }
+      $('mensajes').innerHTML = mensajes.map(m => htmlMensaje(m)).join('');
+      $('mensajes').scrollTop = $('mensajes').scrollHeight;
+    }
+
+    function agregarMensaje(m) {
+      const vac = $('mensajes').querySelector('.vacio');
+      if (vac) $('mensajes').innerHTML = '';
+      $('mensajes').insertAdjacentHTML('beforeend', htmlMensaje(m));
+      $('mensajes').scrollTop = $('mensajes').scrollHeight;
+    }
+
+    function htmlMensaje(m) {
+      const esPropio = m.email === usuario.email;
+      const hora = m.hora
+        ? new Date(m.hora).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+        : '';
+      return `<div class="mensaje ${esPropio ? 'propio' : 'otro'}">
+        ${!esPropio ? `<div class="autor">${m.autor}</div>` : ''}
+        <div class="texto">${m.texto}</div>
+        <div class="hora">${hora}</div>
+      </div>`;
+    }
+
+    $('btn-enviar').onclick = enviarMensaje;
+    $('msg-input').addEventListener('keypress', e => { if (e.key === 'Enter') enviarMensaje(); });
+
+    async function enviarMensaje() {
+      const texto = $('msg-input').value.trim();
+      if (!texto || !grupoActual) return;
+      $('msg-input').value = '';
+      await db.from('mensajes').insert({
+        grupo_id: grupoActual.id,
+        autor:    usuario.nombre,
+        email:    usuario.email,
+        texto
+      });
+    }
+
+    // ── ARCHIVOS ────────────────────────────────────────────────
+    const MAX_BYTES = 10 * 1024 * 1024;
+
+    function comprimirImagen(file) {
+      return new Promise(resolve => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let { width, height } = img;
+          const maxDim = 1800;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) { height = Math.round(height * maxDim / width); width = maxDim; }
+            else                { width  = Math.round(width  * maxDim / height); height = maxDim; }
+          }
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          canvas.toBlob(blob => {
+            URL.revokeObjectURL(url);
+            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+          }, 'image/jpeg', 0.82);
+        };
+        img.src = url;
+      });
+    }
+
+    $('btn-subir').onclick = async () => {
+      let file = $('file-input').files[0];
+      if (!file) return alert('Seleccioná un archivo primero');
+
+      const btn = $('btn-subir');
+
+      if (file.type.startsWith('image/') && file.size > MAX_BYTES) {
+        btn.textContent = 'Comprimiendo...'; btn.disabled = true;
+        file = await comprimirImagen(file);
+      }
+
+      if (file.size > MAX_BYTES) {
+        const mb = (file.size / 1024 / 1024).toFixed(1);
+        alert(`⚠️ El archivo pesa ${mb}MB. El límite es 10MB.\n\nTips:\n• PDFs → ilovepdf.com\n• Videos → handbrake.fr`);
+        btn.textContent = 'Subir archivo'; btn.disabled = false;
+        return;
+      }
+
+      btn.textContent = 'Subiendo...'; btn.disabled = true;
+
+      try {
+        const form = new FormData();
+        form.append('file',          file);
+        form.append('upload_preset', CLOUD_PRESET);
+        form.append('folder',        `grupoestudio/${grupoActual.id}`);
+
+        const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, { method: 'POST', body: form });
+        const data = await res.json();
+        if (!data.secure_url) throw new Error(data.error?.message || 'Falló la subida');
+
+        await db.from('archivos').insert({
+          grupo_id:   grupoActual.id,
+          nombre:     file.name,
+          url:        data.secure_url,
+          tipo:       file.type || 'application/octet-stream',
+          subido_por: usuario.nombre
+        });
+
+        $('file-input').value = '';
+        cargarArchivos();
+      } catch(e) {
+        alert('Error al subir: ' + e.message);
+      } finally {
+        btn.textContent = 'Subir archivo'; btn.disabled = false;
+      }
+    };
+
+    async function cargarArchivos() {
+      cargando('lista-archivos');
+      const { data } = await db
+        .from('archivos')
+        .select('*')
+        .eq('grupo_id', grupoActual.id)
+        .order('subido_el', { ascending: false });
+
+      if (!data || data.length === 0) { vacio('lista-archivos', '📂', 'No hay archivos todavía.'); return; }
+
+      const iconos = {
+        pdf: '📕', doc: '📝', docx: '📝', xls: '📊', xlsx: '📊',
+        ppt: '📊', pptx: '📊', jpg: '🖼️', jpeg: '🖼️', png: '🖼️',
+        gif: '🖼️', mp4: '🎬', mp3: '🎵', zip: '🗜️', rar: '🗜️'
+      };
+
+      $('lista-archivos').innerHTML = data.map(a => {
+        const ext  = a.nombre.split('.').pop().toLowerCase();
+        const icon = iconos[ext] || '📄';
+        const fecha = a.subido_el ? new Date(a.subido_el).toLocaleDateString('es-AR') : '';
+        return `<div class="archivo-card">
+          <div class="archivo-icon">${icon}</div>
+          <div class="archivo-info">
+            <a href="${a.url}" target="_blank">${a.nombre}</a>
+            <span>Subido por ${a.subido_por} · ${fecha}</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── CALENDARIO ──────────────────────────────────────────────
+    $('btn-nuevo-evento').onclick    = () => $('form-evento').classList.toggle('oculto');
+    $('btn-cancelar-evento').onclick = () => {
+      $('form-evento').classList.add('oculto');
+      $('evento-titulo').value = '';
+      $('evento-fecha').value  = '';
+    };
+
+    $('btn-crear-evento').onclick = async () => {
+      const titulo = $('evento-titulo').value.trim();
+      const fecha  = $('evento-fecha').value;
+      const tipo   = $('evento-tipo').value;
+      if (!titulo || !fecha) return alert('Completá título y fecha');
+
+      await db.from('eventos').insert({
+        grupo_id:   grupoActual.id,
+        titulo, fecha, tipo,
+        creado_por: usuario.nombre
+      });
+
+      $('btn-cancelar-evento').click();
+      cargarEventos();
+    };
+
+    async function cargarEventos() {
+      cargando('lista-eventos');
+      const { data } = await db
+        .from('eventos')
+        .select('*')
+        .eq('grupo_id', grupoActual.id)
+        .order('fecha', { ascending: true });
+
+      if (!data || data.length === 0) { vacio('lista-eventos', '📅', 'No hay eventos todavía.'); return; }
+
+      const iconos = { parcial: '📝', reunion: '👥', entrega: '📌', examen: '🎯' };
+      const hoy    = new Date().toISOString().split('T')[0];
+
+      $('lista-eventos').innerHTML = data.map(e => `
+        <div class="evento-card ${e.fecha < hoy ? 'pasado' : ''}">
+          <div class="evento-icon">${iconos[e.tipo] || '📅'}</div>
+          <div class="evento-info">
+            <strong>${e.titulo}</strong>
+            <span>${e.fecha} · ${e.tipo} · ${e.creado_por}</span>
+          </div>
+          ${e.fecha >= hoy ? '<div class="evento-badge">Próximo</div>' : ''}
+        </div>`).join('');
+    }
+
+    // ── MIEMBROS ────────────────────────────────────────────────
+    $('btn-agregar-miembro').onclick = async () => {
+      const email = $('nuevo-miembro-email').value.trim();
+      if (!email || !email.includes('@')) return alert('Ingresá un correo válido');
+
+      const { data: grupo } = await db.from('grupos').select('miembros').eq('id', grupoActual.id).single();
+      const miembros = grupo?.miembros || [];
+      if (miembros.includes(email)) { alert('Ese correo ya es miembro del grupo'); return; }
+
+      await db.from('grupos').update({ miembros: [...miembros, email] }).eq('id', grupoActual.id);
+      $('nuevo-miembro-email').value = '';
+      alert('✅ Miembro agregado');
+      cargarMiembros();
+    };
+
+    async function cargarMiembros() {
+      cargando('lista-miembros');
+      const { data } = await db.from('grupos').select('miembros').eq('id', grupoActual.id).single();
+      const miembros = data?.miembros || [];
+
+      if (miembros.length === 0) { vacio('lista-miembros', '👥', 'Sin miembros.'); return; }
+
+      $('lista-miembros').innerHTML = miembros.map(email => `
+        <div class="miembro-item">
+          <div class="miembro-avatar">${email[0].toUpperCase()}</div>
+          <div class="miembro-datos">
+            <span>${email}</span>
+            ${email === usuario.email ? '<span class="badge-vos">Vos</span>' : ''}
+          </div>
+        </div>`).join('');
+    }
+
+  </script>
+</body>
+</html>
