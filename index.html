@@ -407,8 +407,33 @@
     }
 
     // ── CHAT ────────────────────────────────────────────────────
+    // IDs de mensajes ya renderizados para evitar duplicados
+    const mensajesRendered = new Set();
+
     async function escucharMensajes() {
       cargando('mensajes');
+      mensajesRendered.clear();
+
+      // Suscribirse a nuevos mensajes ANTES de cargar los existentes
+      chatSub = db
+        .channel('chat-' + grupoActual.id)
+        .on('postgres_changes', {
+          event:  'INSERT',
+          schema: 'public',
+          table:  'mensajes',
+          filter: `grupo_id=eq.${grupoActual.id}`
+        }, payload => {
+          const m = payload.new;
+          // Evitar duplicados
+          if (mensajesRendered.has(m.id)) return;
+          mensajesRendered.add(m.id);
+          const vac = $('mensajes').querySelector('.vacio');
+          if (vac) $('mensajes').innerHTML = '';
+          $('mensajes').insertAdjacentHTML('beforeend', htmlMensaje(m));
+          $('mensajes').scrollTop = $('mensajes').scrollHeight;
+          if (m.email !== usuario.email) mostrarNotificacion(m.autor, m.texto);
+        })
+        .subscribe();
 
       // Cargar mensajes existentes
       const { data } = await db
@@ -417,38 +442,17 @@
         .eq('grupo_id', grupoActual.id)
         .order('hora', { ascending: true });
 
-      renderMensajes(data || []);
+      const mensajes = data || [];
 
-      // Escuchar nuevos mensajes en tiempo real
-      chatSub = db
-        .channel('mensajes-' + grupoActual.id)
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'mensajes',
-          filter: `grupo_id=eq.${grupoActual.id}`
-        }, payload => {
-          agregarMensaje(payload.new);
-        })
-        .subscribe();
-    }
-
-    function renderMensajes(mensajes) {
       if (mensajes.length === 0) {
         $('mensajes').innerHTML = '<div class="vacio" style="margin:auto">💬 Nadie escribió todavía.<br>¡Sé el primero!</div>';
-        return;
+      } else {
+        $('mensajes').innerHTML = mensajes.map(m => {
+          mensajesRendered.add(m.id);
+          return htmlMensaje(m);
+        }).join('');
+        $('mensajes').scrollTop = $('mensajes').scrollHeight;
       }
-      $('mensajes').innerHTML = mensajes.map(m => htmlMensaje(m)).join('');
-      $('mensajes').scrollTop = $('mensajes').scrollHeight;
-    }
-
-    function agregarMensaje(m) {
-      const vac = $('mensajes').querySelector('.vacio');
-      if (vac) $('mensajes').innerHTML = '';
-      $('mensajes').insertAdjacentHTML('beforeend', htmlMensaje(m));
-      $('mensajes').scrollTop = $('mensajes').scrollHeight;
-      // Notificar si el mensaje es de otro
-      if (m.email !== usuario.email) mostrarNotificacion(m.autor, m.texto);
     }
 
     function htmlMensaje(m) {
