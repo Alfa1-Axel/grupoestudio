@@ -403,6 +403,8 @@ select option { background: var(--surface2); }
   align-items: flex-start;
   justify-content: flex-start;
   flex-direction: column;
+  width: 100%;
+  max-width: 100%;
 }
 
 .tabs {
@@ -443,6 +445,8 @@ select option { background: var(--surface2); }
   flex-direction: column;
   height: calc(100vh - 110px);
   width: 100%;
+  max-width: 100%;
+  flex: 1;
 }
 .mensajes {
   flex: 1;
@@ -452,6 +456,8 @@ select option { background: var(--surface2); }
   flex-direction: column;
   gap: 8px;
   width: 100%;
+  max-width: 100%;
+  align-items: stretch;
   scrollbar-width: thin;
   scrollbar-color: var(--border2) transparent;
 }
