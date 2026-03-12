@@ -461,8 +461,15 @@
           mensajesRendered.add(m.id);
           return htmlMensaje(m);
         }).join('');
-        $('mensajes').scrollTop = $('mensajes').scrollHeight;
+        // Scroll instantáneo al último mensaje
+        const contenedor = $('mensajes');
+        contenedor.scrollTop = contenedor.scrollHeight;
       }
+
+      // Asegurar que el input siempre esté habilitado
+      $('msg-input').disabled  = false;
+      $('btn-enviar').disabled = false;
+      $('msg-input').focus();
     }
 
     function htmlMensaje(m) {
@@ -485,12 +492,17 @@
     async function enviarMensaje() {
       const texto = $('msg-input').value.trim();
       if (!texto || !grupoActual) return;
+      // Limpiar input inmediatamente sin bloquear
       $('msg-input').value = '';
-      await db.from('mensajes').insert({
+      $('msg-input').focus();
+      // Insertar en background — no bloqueamos con await
+      db.from('mensajes').insert({
         grupo_id: grupoActual.id,
         autor:    usuario.nombre,
         email:    usuario.email,
         texto
+      }).then(({ error }) => {
+        if (error) console.error('Error enviando mensaje:', error.message);
       });
     }
 
