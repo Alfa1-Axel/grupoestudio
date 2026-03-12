@@ -472,6 +472,7 @@
       const miEmail  = (usuario?.email || '').toLowerCase().trim();
       const msgEmail = (m.email || '').toLowerCase().trim();
       const esPropio = miEmail !== '' && miEmail === msgEmail;
+      console.log('MSG:', msgEmail, '| YO:', miEmail, '| propio:', esPropio);
       const hora = m.hora
         ? new Date(m.hora).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
         : '';
