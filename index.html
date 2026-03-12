@@ -69,6 +69,7 @@
     <div class="topbar">
       <div class="topbar-brand"><div class="brand-icon">📚</div> GrupoEstudio</div>
       <div class="topbar-right">
+        <button class="btn btn-ghost btn-sm" id="btn-ir-foro">💬 Foro</button>
         <div class="user-chip">
           <div class="avatar-sm" id="inicio-avatar"></div>
           <span id="inicio-nombre"></span>
@@ -181,6 +182,84 @@
           <button class="btn btn-sm" id="btn-agregar-miembro">+ Agregar</button>
         </div>
         <div id="lista-miembros"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORO -->
+  <div class="pantalla oculto" id="pantalla-foro">
+    <div class="topbar">
+      <div class="topbar-back" id="btn-volver-foro">← Volver</div>
+      <div class="topbar-brand"><div class="brand-icon">💬</div> Foro Q&A</div>
+      <div class="user-chip">
+        <div class="avatar-sm" id="foro-avatar"></div>
+        <span id="foro-nombre"></span>
+      </div>
+    </div>
+
+    <!-- LISTA PREGUNTAS -->
+    <div class="page-wrap" id="foro-lista-wrap">
+      <div class="page-header">
+        <div>
+          <h2>Foro de preguntas</h2>
+          <p class="page-sub">Preguntá y respondé con la comunidad</p>
+        </div>
+        <button class="btn btn-sm" id="btn-nueva-pregunta">+ Pregunta</button>
+      </div>
+
+      <!-- Filtro por categoría -->
+      <div class="foro-filtros">
+        <button class="filtro-btn activo" data-cat="">Todas</button>
+        <button class="filtro-btn" data-cat="Programación">💻 Programación</button>
+        <button class="filtro-btn" data-cat="Matemática">📐 Matemática</button>
+        <button class="filtro-btn" data-cat="Física">⚡ Física</button>
+        <button class="filtro-btn" data-cat="Historia">📜 Historia</button>
+        <button class="filtro-btn" data-cat="Otro">📌 Otro</button>
+      </div>
+
+      <!-- Form nueva pregunta -->
+      <div class="form-card oculto" id="form-pregunta">
+        <div class="input-group">
+          <label>Título de la pregunta</label>
+          <input type="text" id="preg-titulo" placeholder="¿Cuál es tu duda?" />
+        </div>
+        <div class="input-group">
+          <label>Descripción</label>
+          <textarea id="preg-desc" rows="3" placeholder="Explicá con más detalle..."></textarea>
+        </div>
+        <div class="input-group">
+          <label>Categoría</label>
+          <select id="preg-categoria">
+            <option value="Programación">💻 Programación</option>
+            <option value="Matemática">📐 Matemática</option>
+            <option value="Física">⚡ Física</option>
+            <option value="Historia">📜 Historia</option>
+            <option value="Otro">📌 Otro</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <button class="btn btn-sm" id="btn-publicar-pregunta">Publicar pregunta</button>
+          <button class="btn btn-ghost btn-sm" id="btn-cancelar-pregunta">Cancelar</button>
+        </div>
+      </div>
+
+      <div id="lista-preguntas"><p class="cargando">Cargando preguntas...</p></div>
+    </div>
+
+    <!-- DETALLE PREGUNTA -->
+    <div class="page-wrap oculto" id="foro-detalle-wrap">
+      <button class="btn btn-ghost btn-sm" id="btn-volver-lista" style="margin-bottom:16px">← Volver al foro</button>
+      <div id="detalle-pregunta"></div>
+      <div class="section-header" style="margin-top:24px">
+        <h3>Respuestas</h3>
+      </div>
+      <div id="lista-respuestas"></div>
+      <div class="form-card" id="form-respuesta" style="margin-top:16px">
+        <div class="input-group">
+          <label>Tu respuesta</label>
+          <textarea id="resp-texto" rows="3" placeholder="Escribí tu respuesta..."></textarea>
+        </div>
+        <button class="btn btn-sm" id="btn-publicar-respuesta">Publicar respuesta</button>
       </div>
     </div>
   </div>
@@ -692,6 +771,196 @@
         </div>`;
       }).join('');
     }
+
+    // ── FORO ────────────────────────────────────────────────────
+    let categoriaActual  = '';
+    let preguntaActual   = null;
+
+    $('btn-ir-foro').onclick = () => {
+      ir('pantalla-foro');
+      $('foro-avatar').textContent = usuario.nombre[0].toUpperCase();
+      $('foro-nombre').textContent = usuario.nombre;
+      mostrarListaForo();
+      cargarPreguntas();
+    };
+
+    $('btn-volver-foro').onclick = () => ir('pantalla-inicio');
+
+    $('btn-volver-lista').onclick = () => {
+      mostrarListaForo();
+      cargarPreguntas();
+    };
+
+    function mostrarListaForo() {
+      $('foro-lista-wrap').classList.remove('oculto');
+      $('foro-detalle-wrap').classList.add('oculto');
+    }
+
+    function mostrarDetalleForo() {
+      $('foro-lista-wrap').classList.add('oculto');
+      $('foro-detalle-wrap').classList.remove('oculto');
+    }
+
+    // Filtros
+    document.querySelectorAll('.filtro-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('activo'));
+        btn.classList.add('activo');
+        categoriaActual = btn.dataset.cat;
+        cargarPreguntas();
+      });
+    });
+
+    // Nueva pregunta
+    $('btn-nueva-pregunta').onclick   = () => $('form-pregunta').classList.toggle('oculto');
+    $('btn-cancelar-pregunta').onclick = () => {
+      $('form-pregunta').classList.add('oculto');
+      $('preg-titulo').value = '';
+      $('preg-desc').value   = '';
+    };
+
+    $('btn-publicar-pregunta').onclick = async () => {
+      const titulo    = $('preg-titulo').value.trim();
+      const descripcion = $('preg-desc').value.trim();
+      const categoria = $('preg-categoria').value;
+      if (!titulo || !descripcion) return alert('Completá título y descripción');
+
+      const { error } = await db.from('foro_preguntas').insert({
+        titulo, descripcion, categoria,
+        autor:       usuario.nombre,
+        autor_email: usuario.email
+      });
+
+      if (error) { alert('Error: ' + error.message); return; }
+      $('btn-cancelar-pregunta').click();
+      cargarPreguntas();
+    };
+
+    async function cargarPreguntas() {
+      cargando('lista-preguntas');
+      let query = db
+        .from('foro_preguntas')
+        .select('*')
+        .order('creado_el', { ascending: false });
+
+      if (categoriaActual) query = query.eq('categoria', categoriaActual);
+
+      const { data, error } = await query;
+      if (error || !data || data.length === 0) {
+        vacio('lista-preguntas', '💬', 'No hay preguntas todavía. ¡Sé el primero!');
+        return;
+      }
+
+      $('lista-preguntas').innerHTML = data.map(p => `
+        <div class="pregunta-card ${p.resuelto ? 'resuelta' : ''}" data-id="${p.id}">
+          <div class="pregunta-header">
+            <span class="cat-badge">${p.categoria}</span>
+            ${p.resuelto ? '<span class="resuelta-badge">✅ Resuelta</span>' : ''}
+          </div>
+          <h3 class="pregunta-titulo">${p.titulo}</h3>
+          <p class="pregunta-desc">${p.descripcion.length > 120 ? p.descripcion.slice(0,120)+'...' : p.descripcion}</p>
+          <div class="pregunta-meta">
+            <span>👤 ${p.autor}</span>
+            <span>📅 ${new Date(p.creado_el).toLocaleDateString('es-AR')}</span>
+          </div>
+        </div>`).join('');
+
+      document.querySelectorAll('.pregunta-card').forEach(card => {
+        card.addEventListener('click', () => abrirPregunta(card.dataset.id));
+      });
+    }
+
+    async function abrirPregunta(id) {
+      const { data: p } = await db.from('foro_preguntas').select('*').eq('id', id).single();
+      if (!p) return;
+      preguntaActual = p;
+      mostrarDetalleForo();
+
+      $('detalle-pregunta').innerHTML = `
+        <div class="pregunta-detalle">
+          <div class="pregunta-header">
+            <span class="cat-badge">${p.categoria}</span>
+            ${p.resuelto ? '<span class="resuelta-badge">✅ Resuelta</span>' : ''}
+          </div>
+          <h2>${p.titulo}</h2>
+          <p style="color:var(--muted2);margin:12px 0;line-height:1.7">${p.descripcion}</p>
+          <div class="pregunta-meta">
+            <span>👤 ${p.autor}</span>
+            <span>📅 ${new Date(p.creado_el).toLocaleDateString('es-AR')}</span>
+          </div>
+        </div>`;
+
+      cargarRespuestas(id);
+    }
+
+    async function cargarRespuestas(preguntaId) {
+      cargando('lista-respuestas');
+      const { data } = await db
+        .from('foro_respuestas')
+        .select('*')
+        .eq('pregunta_id', preguntaId)
+        .order('votos', { ascending: false });
+
+      if (!data || data.length === 0) {
+        vacio('lista-respuestas', '💭', 'Todavía no hay respuestas. ¡Respondé vos!');
+        return;
+      }
+
+      const esDuenio = preguntaActual?.autor_email === usuario.email;
+
+      $('lista-respuestas').innerHTML = data.map(r => `
+        <div class="respuesta-card ${r.es_correcta ? 'correcta' : ''}">
+          ${r.es_correcta ? '<div class="correcta-banner">✅ Respuesta correcta</div>' : ''}
+          <p class="respuesta-texto">${r.texto}</p>
+          <div class="respuesta-meta">
+            <span>👤 ${r.autor}</span>
+            <span>📅 ${new Date(r.creado_el).toLocaleDateString('es-AR')}</span>
+            <button class="btn-voto" data-id="${r.id}" data-votos="${r.votos}">
+              👍 ${r.votos}
+            </button>
+            ${esDuenio && !preguntaActual.resuelto ? `
+              <button class="btn-correcta" data-id="${r.id}">✅ Marcar correcta</button>
+            ` : ''}
+          </div>
+        </div>`).join('');
+
+      // Votar
+      document.querySelectorAll('.btn-voto').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id    = btn.dataset.id;
+          const votos = parseInt(btn.dataset.votos) + 1;
+          await db.from('foro_respuestas').update({ votos }).eq('id', id);
+          btn.dataset.votos = votos;
+          btn.textContent   = '👍 ' + votos;
+        });
+      });
+
+      // Marcar como correcta
+      document.querySelectorAll('.btn-correcta').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          await db.from('foro_respuestas').update({ es_correcta: true }).eq('id', id);
+          await db.from('foro_preguntas').update({ resuelto: true }).eq('id', preguntaActual.id);
+          preguntaActual.resuelto = true;
+          abrirPregunta(preguntaActual.id);
+        });
+      });
+    }
+
+    $('btn-publicar-respuesta').onclick = async () => {
+      const texto = $('resp-texto').value.trim();
+      if (!texto) return alert('Escribí tu respuesta');
+
+      await db.from('foro_respuestas').insert({
+        pregunta_id: preguntaActual.id,
+        texto,
+        autor:       usuario.nombre,
+        autor_email: usuario.email
+      });
+
+      $('resp-texto').value = '';
+      cargarRespuestas(preguntaActual.id);
+    };
 
   </script>
 </body>
