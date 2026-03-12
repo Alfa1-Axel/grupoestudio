@@ -1879,7 +1879,11 @@
               <div class="form-row" style="margin-top:8px">
                 <button class="btn btn-sm" onclick="responderSolicitud('${s.id}','aceptada')">✅ Aceptar</button>
                 <button class="btn btn-ghost btn-sm" onclick="responderSolicitud('${s.id}','rechazada')">❌ Rechazar</button>
-              </div>` : ''}
+              </div>`
+            : s.estado === 'aceptada' ? `
+              <button class="btn btn-sm" style="margin-top:8px" onclick="abrirDM('${s.alumno_email}','${s.alumno_nombre}')">
+                💬 Chatear con ${s.alumno_nombre}
+              </button>` : ''}
           </div>`).join('');
       }
 
@@ -1891,7 +1895,11 @@
               <span style="font-weight:500">🎓 ${s.tutores?.nombre || 'Tutor'} — ${s.tutores?.materia || ''}</span>
               <span style="color:${estadoColor[s.estado]}">${estadoEmoji[s.estado]} ${s.estado}</span>
             </div>
-            <p style="font-size:13px;color:var(--muted2);margin-top:6px">${s.mensaje}</p>
+            <p style="font-size:13px;color:var(--muted2);margin:8px 0">${s.mensaje}</p>
+            ${s.estado === 'aceptada' ? `
+              <button class="btn btn-sm" style="margin-top:4px" onclick="abrirDMTutor('${s.tutor_id}')">
+                💬 Chatear con el tutor
+              </button>` : ''}
           </div>`).join('');
       }
 
@@ -1902,6 +1910,11 @@
     window.responderSolicitud = async (id, estado) => {
       await db.from('solicitudes_clase').update({ estado }).eq('id', id);
       cargarSolicitudes();
+    };
+
+    window.abrirDMTutor = async (tutorId) => {
+      const { data: t } = await db.from('tutores').select('email, nombre').eq('id', tutorId).single();
+      if (t) abrirDM(t.email, t.nombre);
     };
 
     // ── RANKING ─────────────────────────────────────────────────
