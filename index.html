@@ -437,8 +437,8 @@
           mensajesRendered.add(m.id);
           const vac = $('mensajes').querySelector('.vacio');
           if (vac) $('mensajes').innerHTML = '';
-          $('mensajes').insertAdjacentHTML('beforeend', htmlMensaje(m));
-          $('mensajes').scrollTop = $('mensajes').scrollHeight;
+          // Con column-reverse, insertar al inicio = aparece abajo
+          $('mensajes').insertAdjacentHTML('afterbegin', htmlMensaje(m));
           if (m.email !== usuario.email) mostrarNotificacion(m.autor, m.texto);
         })
         .subscribe(status => {
@@ -450,7 +450,7 @@
         .from('mensajes')
         .select('*')
         .eq('grupo_id', grupoActual.id)
-        .order('hora', { ascending: true });
+        .order('hora', { ascending: false }); // desc para column-reverse
 
       const mensajes = data || [];
 
@@ -461,9 +461,7 @@
           mensajesRendered.add(m.id);
           return htmlMensaje(m);
         }).join('');
-        // Scroll instantáneo al último mensaje
-        const contenedor = $('mensajes');
-        contenedor.scrollTop = contenedor.scrollHeight;
+        // column-reverse se encarga del scroll automáticamente
       }
 
       // Asegurar que el input siempre esté habilitado
