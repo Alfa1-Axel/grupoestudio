@@ -81,6 +81,26 @@
         <button class="btn btn-ghost btn-sm" id="btn-salir">Salir</button>
       </div>
     </div>
+    <!-- Nav móvil -->
+    <nav class="nav-mobile" style="display:none">
+      <button class="nav-mobile-btn activo" id="nav-grupos">
+        <span>📚</span><span>Grupos</span>
+      </button>
+      <button class="nav-mobile-btn" id="nav-foro">
+        <span>💬</span><span>Foro</span>
+      </button>
+      <button class="nav-mobile-btn" id="nav-ranking">
+        <span>🏆</span><span>Ranking</span>
+      </button>
+      <button class="nav-mobile-btn" id="nav-mensajes" style="position:relative">
+        <span>✉️</span><span>Mensajes</span>
+        <span id="badge-nav" class="badge-noread oculto" style="position:absolute;top:4px;right:8px">0</span>
+      </button>
+      <button class="nav-mobile-btn" id="nav-perfil">
+        <span>👤</span><span>Perfil</span>
+      </button>
+    </nav>
+
     <div class="page-wrap">
       <div class="page-header">
         <div>
@@ -1582,6 +1602,26 @@
 
     // ── RANKING ─────────────────────────────────────────────────
     $('btn-ir-ranking').onclick   = () => { ir('pantalla-ranking'); cargarRanking(); };
+
+    // ── NAV MÓVIL ────────────────────────────────────────────────
+    function setupNavMobile() {
+      const nav = document.querySelector('.nav-mobile');
+      if (!nav) return;
+
+      $('nav-grupos').onclick  = () => { ir('pantalla-inicio'); setNavActivo('nav-grupos'); };
+      $('nav-foro').onclick    = () => { ir('pantalla-foro');   $('foro-avatar').textContent = usuario.nombre[0].toUpperCase(); $('foro-nombre').textContent = usuario.nombre; mostrarListaForo(); cargarPreguntas(); setNavActivo('nav-foro'); };
+      $('nav-ranking').onclick = () => { ir('pantalla-ranking'); cargarRanking(); setNavActivo('nav-ranking'); };
+      $('nav-mensajes').onclick= () => { ir('pantalla-bandeja'); cargarBandeja(); setNavActivo('nav-mensajes'); };
+      $('nav-perfil').onclick  = () => { abrirPerfil(); setNavActivo('nav-perfil'); };
+    }
+
+    function setNavActivo(id) {
+      document.querySelectorAll('.nav-mobile-btn').forEach(b => b.classList.remove('activo'));
+      const btn = $(id);
+      if (btn) btn.classList.add('activo');
+    }
+
+    setupNavMobile();
     $('btn-volver-ranking').onclick = () => ir('pantalla-inicio');
 
     async function cargarRanking() {
@@ -1636,24 +1676,30 @@
       cargando('dm-mensajes');
 
       // Suscribir realtime
-      dmSub = db.channel('dm-' + [usuario.email, emailDest].sort().join('-'))
+      if (dmSub) { await db.removeChannel(dmSub); dmSub = null; }
+      dmSub = db.channel('dm-' + Date.now())
         .on('postgres_changes', {
-          event: 'INSERT', schema: 'public', table: 'mensajes_privados'
+          event:  '*',
+          schema: 'public',
+          table:  'mensajes_privados'
         }, payload => {
+          if (payload.eventType !== 'INSERT') return;
           const m = payload.new;
+          if (!m) return;
           const involucra = (m.de_email === usuario.email && m.para_email === emailDest) ||
-                            (m.de_email === emailDest && m.para_email === usuario.email);
+                            (m.de_email === emailDest    && m.para_email === usuario.email);
           if (!involucra || dmRendered.has(m.id)) return;
           dmRendered.add(m.id);
           const vac = $('dm-mensajes').querySelector('.vacio');
           if (vac) $('dm-mensajes').innerHTML = '';
           $('dm-mensajes').insertAdjacentHTML('beforeend', htmlDM(m));
           $('dm-mensajes').scrollTop = $('dm-mensajes').scrollHeight;
-          if (m.de_email !== usuario.email) mostrarNotificacion(m.de_nombre, m.texto);
-          // Marcar como leído
-          db.from('mensajes_privados').update({ leido: true }).eq('id', m.id).then(() => actualizarBadge());
+          if (m.de_email !== usuario.email) {
+            mostrarNotificacion(m.de_nombre, m.texto || '📷 Imagen');
+            db.from('mensajes_privados').update({ leido: true }).eq('id', m.id).then(() => actualizarBadge());
+          }
         })
-        .subscribe();
+        .subscribe(status => console.log('DM realtime:', status));
 
       // Cargar historial
       const { data } = await db.from('mensajes_privados')
@@ -1778,8 +1824,15 @@
         .eq('para_email', usuario.email)
         .eq('leido', false);
       const badge = $('badge-no-leidos');
-      if (count > 0) { badge.textContent = count; badge.classList.remove('oculto'); }
-      else { badge.classList.add('oculto'); }
+      if (count > 0) {
+        badge.textContent = count; badge.classList.remove('oculto');
+        const badgeNav = $('badge-nav');
+        if (badgeNav) { badgeNav.textContent = count; badgeNav.classList.remove('oculto'); }
+      } else {
+        badge.classList.add('oculto');
+        const badgeNav = $('badge-nav');
+        if (badgeNav) badgeNav.classList.add('oculto');
+      }
     }
 
     // Verificar mensajes no leídos al cargar

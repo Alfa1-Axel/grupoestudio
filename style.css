@@ -1190,3 +1190,119 @@ textarea::placeholder { color: var(--muted); }
   transition: border-color 0.2s, transform 0.15s;
 }
 .conv-item:hover { border-color: var(--border2); transform: translateY(-1px); }
+
+/* ════════════════════════════════════════
+   RESPONSIVE MOBILE
+════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── Blobs más chicos ── */
+  .blob-1 { width: 260px; height: 260px; }
+  .blob-2 { width: 200px; height: 200px; }
+
+  /* ── Auth ── */
+  .auth-wrap  { padding: 20px 16px; width: 100%; }
+  .auth-card  { padding: 20px 16px; }
+  .auth-logo h1 { font-size: 28px; }
+
+  /* ── Topbar ── */
+  .topbar {
+    padding: 0 12px;
+    height: 52px;
+  }
+  .topbar-brand { font-size: 14px; }
+  .topbar-brand .brand-icon { font-size: 18px; }
+  .online-badge { display: none; }
+  .topbar-right { gap: 6px; }
+  .topbar-right .btn { font-size: 11px; padding: 5px 8px; }
+  #btn-ir-foro, #btn-ir-ranking { display: none; }
+  #btn-ir-bandeja { display: flex !important; }
+
+  /* ── Nav móvil abajo ── */
+  .nav-mobile {
+    display: flex !important;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 58px;
+    background: rgba(13,17,23,0.97);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border);
+    z-index: 100;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 8px;
+  }
+  .nav-mobile-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    color: var(--muted);
+    font-size: 10px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 10px;
+    transition: color 0.2s, background 0.2s;
+    border: none;
+    background: transparent;
+    font-family: var(--fbody);
+    flex: 1;
+  }
+  .nav-mobile-btn span:first-child { font-size: 20px; }
+  .nav-mobile-btn.activo { color: var(--accent); }
+
+  /* ── Page wrap ── */
+  .page-wrap { padding: 16px; padding-bottom: 70px; }
+  .page-header { flex-direction: column; gap: 10px; align-items: flex-start; }
+  .page-header h2 { font-size: 22px; }
+
+  /* ── Grupos ── */
+  .grupo-card { padding: 14px; }
+  .grupo-card h3 { font-size: 15px; }
+
+  /* ── Tabs grupo ── */
+  .tabs { padding: 0 8px; gap: 2px; overflow-x: auto; }
+  .tab-btn { font-size: 12px; padding: 10px 10px; white-space: nowrap; }
+
+  /* ── Chat ── */
+  #tab-chat { top: 96px; }
+  .mensajes { padding: 12px; gap: 6px; }
+  .mensaje  { max-width: 82%; font-size: 13px; }
+  .chat-input-wrap { padding: 8px 12px; gap: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+  #msg-input { font-size: 14px; }
+
+  /* ── DM ── */
+  #tab-dm { top: 52px; }
+
+  /* ── Archivos ── */
+  .archivo-item { flex-wrap: wrap; gap: 8px; }
+
+  /* ── Foro ── */
+  .foro-filtros { gap: 6px; }
+  .filtro-btn   { font-size: 11px; padding: 5px 10px; }
+  .pregunta-card { padding: 14px; }
+  .pregunta-titulo { font-size: 14px; }
+
+  /* ── Ranking ── */
+  .ranking-item { padding: 10px 12px; gap: 10px; }
+  .ranking-pts  { font-size: 13px; }
+
+  /* ── Perfil ── */
+  .perfil-avatar-grande { width: 72px; height: 72px; font-size: 28px; }
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-val   { font-size: 18px; }
+
+  /* ── Miembros ── */
+  .miembro-item { padding: 10px 12px; }
+
+  /* ── Forms ── */
+  .form-card  { padding: 16px; }
+  .form-row   { flex-direction: column; gap: 8px; }
+  input, select, textarea { font-size: 16px !important; } /* evita zoom en iOS */
+}
+
+@media (max-width: 400px) {
+  .mensaje { max-width: 90%; }
+  .tab-btn { font-size: 11px; padding: 10px 8px; }
+  .page-header h2 { font-size: 20px; }
+}
