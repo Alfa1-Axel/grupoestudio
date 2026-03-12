@@ -218,12 +218,15 @@
     // ── AUTH ────────────────────────────────────────────────────
     db.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        usuario = session.user;
-        // El nombre está en user_metadata
+        usuario        = session.user;
         usuario.nombre = session.user.user_metadata?.nombre || session.user.email;
+        usuario.email  = session.user.email;
+        // Guardar email en memoria global para acceso inmediato
+        window._miEmail = session.user.email.toLowerCase().trim();
         await cargarInicio();
       } else {
         usuario = null;
+        window._miEmail = null;
         ir('pantalla-login');
       }
     });
@@ -407,14 +410,18 @@
     }
 
     // ── CHAT ────────────────────────────────────────────────────
-    // IDs de mensajes ya renderizados para evitar duplicados
     const mensajesRendered = new Set();
 
     async function escucharMensajes() {
       cargando('mensajes');
       mensajesRendered.clear();
 
-      // Suscribirse a nuevos mensajes ANTES de cargar los existentes
+      // Cancelar suscripción anterior correctamente
+      if (chatSub) {
+        await db.removeChannel(chatSub);
+        chatSub = null;
+      }
+
       chatSub = db
         .channel('chat-' + grupoActual.id)
         .on('postgres_changes', {
@@ -438,15 +445,6 @@
           console.log('Chat realtime status:', status);
         });
 
-      // Esperar que el usuario esté completamente cargado
-      if (!usuario?.email) {
-        const { data: { session } } = await db.auth.getSession();
-        if (session?.user) {
-          usuario.email  = session.user.email;
-          usuario.nombre = session.user.user_metadata?.nombre || session.user.email;
-        }
-      }
-
       // Cargar mensajes existentes
       const { data } = await db
         .from('mensajes')
@@ -468,11 +466,9 @@
     }
 
     function htmlMensaje(m) {
-      // Comparar en minúsculas para evitar problemas de capitalización
-      const miEmail  = (usuario?.email || '').toLowerCase().trim();
+      const miEmail  = (window._miEmail || '').toLowerCase().trim();
       const msgEmail = (m.email || '').toLowerCase().trim();
       const esPropio = miEmail !== '' && miEmail === msgEmail;
-      console.log('MSG:', msgEmail, '| YO:', miEmail, '| propio:', esPropio);
       const hora = m.hora
         ? new Date(m.hora).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
         : '';
