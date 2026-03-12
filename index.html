@@ -70,6 +70,7 @@
       <div class="topbar-brand"><div class="brand-icon">📚</div> GrupoEstudio</div>
       <div class="topbar-right">
         <button class="btn btn-ghost btn-sm" id="btn-ir-foro">💬 Foro</button>
+        <button class="btn btn-ghost btn-sm" id="btn-ir-clases">🎓 Clases</button>
         <button class="btn btn-ghost btn-sm" id="btn-ir-ranking">🏆 Ranking</button>
         <button class="btn btn-ghost btn-sm" id="btn-ir-bandeja" style="position:relative">
           ✉️ <span id="badge-no-leidos" class="badge-noread oculto">0</span>
@@ -88,6 +89,9 @@
       </button>
       <button class="nav-mobile-btn" id="nav-foro">
         <span>💬</span><span>Foro</span>
+      </button>
+      <button class="nav-mobile-btn" id="nav-clases">
+        <span>🎓</span><span>Clases</span>
       </button>
       <button class="nav-mobile-btn" id="nav-ranking">
         <span>🏆</span><span>Ranking</span>
@@ -413,6 +417,99 @@
         <div><h2>Mensajes privados</h2><p class="page-sub">Tus conversaciones</p></div>
       </div>
       <div id="lista-conversaciones"><p class="cargando">Cargando...</p></div>
+    </div>
+  </div>
+
+  <!-- CLASES PARTICULARES -->
+  <div class="pantalla oculto" id="pantalla-clases">
+    <div class="topbar">
+      <div class="topbar-back" id="btn-volver-clases">← Volver</div>
+      <div class="topbar-brand">🎓 Clases particulares</div>
+      <div style="width:80px"></div>
+    </div>
+
+    <!-- TABS clases -->
+    <div class="tabs">
+      <button class="tab-btn activo" data-ctab="buscar">🔍 Buscar tutor</button>
+      <button class="tab-btn" data-ctab="ofrecer">📢 Ofrecer clases</button>
+      <button class="tab-btn" data-ctab="solicitudes">📬 Solicitudes</button>
+    </div>
+
+    <!-- BUSCAR -->
+    <div class="tab-content" id="ctab-buscar">
+      <div class="tab-inner">
+        <div class="foro-filtros" id="filtros-materia">
+          <button class="filtro-btn activo" data-mat="">Todas</button>
+          <button class="filtro-btn" data-mat="Programación">💻 Programación</button>
+          <button class="filtro-btn" data-mat="Matemática">📐 Matemática</button>
+          <button class="filtro-btn" data-mat="Física">⚡ Física</button>
+          <button class="filtro-btn" data-mat="Historia">📜 Historia</button>
+          <button class="filtro-btn" data-mat="Inglés">🌍 Inglés</button>
+          <button class="filtro-btn" data-mat="Otro">📌 Otro</button>
+        </div>
+        <div id="lista-tutores"><p class="cargando">Cargando tutores...</p></div>
+      </div>
+    </div>
+
+    <!-- OFRECER -->
+    <div class="tab-content oculto" id="ctab-ofrecer">
+      <div class="tab-inner">
+        <div id="mi-perfil-tutor"></div>
+        <div class="form-card" id="form-tutor">
+          <h3 style="margin-bottom:16px;font-family:var(--fhead)">Publicar como tutor</h3>
+          <div class="input-group">
+            <label>Materia que enseñás</label>
+            <select id="tutor-materia">
+              <option value="Programación">💻 Programación</option>
+              <option value="Matemática">📐 Matemática</option>
+              <option value="Física">⚡ Física</option>
+              <option value="Historia">📜 Historia</option>
+              <option value="Inglés">🌍 Inglés</option>
+              <option value="Otro">📌 Otro</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>Descripción</label>
+            <textarea id="tutor-desc" rows="3" placeholder="Contá tu experiencia, metodología..."></textarea>
+          </div>
+          <div class="input-group">
+            <label>Precio por hora ($ — dejá 0 si es gratis)</label>
+            <input type="number" id="tutor-precio" placeholder="0" min="0" />
+          </div>
+          <div class="input-group">
+            <label>Modalidad</label>
+            <select id="tutor-modalidad">
+              <option value="virtual">💻 Virtual</option>
+              <option value="presencial">📍 Presencial</option>
+              <option value="ambas">🔄 Ambas</option>
+            </select>
+          </div>
+          <button class="btn" id="btn-publicar-tutor">Publicar perfil de tutor</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOLICITUDES -->
+    <div class="tab-content oculto" id="ctab-solicitudes">
+      <div class="tab-inner">
+        <div id="lista-solicitudes"><p class="cargando">Cargando...</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL SOLICITAR CLASE -->
+  <div class="modal-overlay oculto" id="modal-solicitud">
+    <div class="modal-card">
+      <h3 style="font-family:var(--fhead);margin-bottom:16px">Solicitar clase</h3>
+      <div id="modal-tutor-info" style="margin-bottom:16px"></div>
+      <div class="input-group">
+        <label>Mensaje al tutor</label>
+        <textarea id="solicitud-msg" rows="3" placeholder="Contale qué necesitás aprender, tus horarios disponibles..."></textarea>
+      </div>
+      <div class="form-row">
+        <button class="btn" id="btn-enviar-solicitud">Enviar solicitud</button>
+        <button class="btn btn-ghost" id="btn-cerrar-modal">Cancelar</button>
+      </div>
     </div>
   </div>
 
@@ -1600,6 +1697,213 @@
       alert('✅ Perfil guardado');
     };
 
+    // ── CLASES PARTICULARES ──────────────────────────────────────
+    let tutorActual   = null;
+    let materiaActual = '';
+
+    function irClases() {
+      ir('pantalla-clases');
+      activarCTab('buscar');
+      cargarTutores();
+    }
+
+    $('btn-ir-clases').onclick    = irClases;
+    $('btn-volver-clases').onclick = () => ir('pantalla-inicio');
+
+    // Tabs clases
+    document.querySelectorAll('[data-ctab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activarCTab(btn.dataset.ctab);
+        if (btn.dataset.ctab === 'solicitudes') cargarSolicitudes();
+        if (btn.dataset.ctab === 'ofrecer')     cargarMiPerfilTutor();
+      });
+    });
+
+    function activarCTab(tab) {
+      document.querySelectorAll('[data-ctab]').forEach(b => b.classList.remove('activo'));
+      document.querySelectorAll('.tab-content[id^="ctab-"]').forEach(c => c.classList.add('oculto'));
+      document.querySelector(`[data-ctab="${tab}"]`).classList.add('activo');
+      $('ctab-' + tab).classList.remove('oculto');
+    }
+
+    // Filtros materia
+    document.querySelectorAll('#filtros-materia .filtro-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#filtros-materia .filtro-btn').forEach(b => b.classList.remove('activo'));
+        btn.classList.add('activo');
+        materiaActual = btn.dataset.mat;
+        cargarTutores();
+      });
+    });
+
+    async function cargarTutores() {
+      cargando('lista-tutores');
+      let query = db.from('tutores').select('*').eq('disponible', true).order('creado_el', { ascending: false });
+      if (materiaActual) query = query.eq('materia', materiaActual);
+      const { data } = await query;
+
+      if (!data || data.length === 0) { vacio('lista-tutores', '🎓', 'No hay tutores disponibles todavía.'); return; }
+
+      const iconos = { virtual: '💻', presencial: '📍', ambas: '🔄' };
+      $('lista-tutores').innerHTML = data.map(t => `
+        <div class="tutor-card">
+          <div class="tutor-header">
+            <div class="tutor-avatar">${t.nombre[0].toUpperCase()}</div>
+            <div class="tutor-info">
+              <div class="tutor-nombre">${t.nombre}</div>
+              <div class="tutor-meta">
+                <span class="cat-badge">${t.materia}</span>
+                <span class="tutor-modal">${iconos[t.modalidad] || '💻'} ${t.modalidad}</span>
+              </div>
+            </div>
+            <div class="tutor-precio">${t.precio_hora > 0 ? '$' + t.precio_hora + '/h' : '🎁 Gratis'}</div>
+          </div>
+          <p class="tutor-desc">${t.descripcion}</p>
+          ${t.email === usuario.email
+            ? '<span style="font-size:12px;color:var(--green)">✅ Este es tu perfil</span>'
+            : `<button class="btn btn-sm" onclick="abrirModalSolicitud('${t.id}','${t.nombre}','${t.materia}','${t.email}')">Solicitar clase</button>`
+          }
+        </div>`).join('');
+    }
+
+    async function cargarMiPerfilTutor() {
+      const { data } = await db.from('tutores').select('*').eq('usuario_id', usuario.id).single();
+      const wrap = $('mi-perfil-tutor');
+      if (data) {
+        wrap.innerHTML = `
+          <div class="form-card" style="margin-bottom:16px;border-color:rgba(34,211,160,0.3)">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-weight:600;margin-bottom:4px">✅ Tu perfil activo</div>
+                <div style="font-size:13px;color:var(--muted2)">${data.materia} · ${data.precio_hora > 0 ? '$'+data.precio_hora+'/h' : 'Gratis'} · ${data.modalidad}</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" id="btn-toggle-disponible">
+                ${data.disponible ? '⏸ Pausar' : '▶️ Activar'}
+              </button>
+            </div>
+          </div>`;
+        $('btn-toggle-disponible').onclick = async () => {
+          await db.from('tutores').update({ disponible: !data.disponible }).eq('id', data.id);
+          cargarMiPerfilTutor();
+          cargarTutores();
+        };
+        $('form-tutor').querySelector('h3').textContent = '✏️ Actualizar perfil';
+        $('tutor-materia').value   = data.materia;
+        $('tutor-desc').value      = data.descripcion;
+        $('tutor-precio').value    = data.precio_hora;
+        $('tutor-modalidad').value = data.modalidad;
+        $('btn-publicar-tutor').textContent = 'Actualizar perfil';
+      } else {
+        wrap.innerHTML = '';
+      }
+    }
+
+    $('btn-publicar-tutor').onclick = async () => {
+      const materia   = $('tutor-materia').value;
+      const desc      = $('tutor-desc').value.trim();
+      const precio    = parseFloat($('tutor-precio').value) || 0;
+      const modalidad = $('tutor-modalidad').value;
+      if (!desc) return alert('Agregá una descripción');
+
+      const { data: existe } = await db.from('tutores').select('id').eq('usuario_id', usuario.id).single();
+      if (existe) {
+        await db.from('tutores').update({ materia, descripcion: desc, precio_hora: precio, modalidad }).eq('id', existe.id);
+      } else {
+        await db.from('tutores').insert({ usuario_id: usuario.id, nombre: usuario.nombre, email: usuario.email, materia, descripcion: desc, precio_hora: precio, modalidad });
+        sumarPuntos(10);
+      }
+      alert('✅ Perfil guardado');
+      cargarMiPerfilTutor();
+      cargarTutores();
+    };
+
+    // Modal solicitud
+    let tutorSolicitud = null;
+
+    window.abrirModalSolicitud = (id, nombre, materia, email) => {
+      tutorSolicitud = { id, nombre, materia, email };
+      $('modal-tutor-info').innerHTML = `
+        <div class="tutor-mini">
+          <div class="tutor-avatar">${nombre[0].toUpperCase()}</div>
+          <div><div style="font-weight:600">${nombre}</div><div style="font-size:12px;color:var(--muted2)">${materia}</div></div>
+        </div>`;
+      $('solicitud-msg').value = '';
+      $('modal-solicitud').classList.remove('oculto');
+    };
+
+    $('btn-cerrar-modal').onclick = () => $('modal-solicitud').classList.add('oculto');
+    $('modal-overlay') && ($('modal-overlay').onclick = (e) => { if (e.target === $('modal-overlay')) $('modal-solicitud').classList.add('oculto'); });
+
+    $('btn-enviar-solicitud').onclick = async () => {
+      const msg = $('solicitud-msg').value.trim();
+      if (!msg) return alert('Escribí un mensaje para el tutor');
+      await db.from('solicitudes_clase').insert({
+        tutor_id:      tutorSolicitud.id,
+        alumno_email:  usuario.email,
+        alumno_nombre: usuario.nombre,
+        mensaje:       msg
+      });
+      $('modal-solicitud').classList.add('oculto');
+      alert('✅ Solicitud enviada');
+    };
+
+    async function cargarSolicitudes() {
+      cargando('lista-solicitudes');
+      // Buscar mi tutor_id si soy tutor
+      const { data: miTutor } = await db.from('tutores').select('id').eq('usuario_id', usuario.id).single();
+
+      let solicitudes = [];
+      if (miTutor) {
+        const { data } = await db.from('solicitudes_clase').select('*').eq('tutor_id', miTutor.id).order('creado_el', { ascending: false });
+        solicitudes = data || [];
+      }
+
+      // También mis solicitudes enviadas
+      const { data: enviadas } = await db.from('solicitudes_clase').select('*, tutores(nombre, materia)').eq('alumno_email', usuario.email).order('creado_el', { ascending: false });
+
+      const estadoColor = { pendiente: 'var(--muted2)', aceptada: 'var(--green)', rechazada: 'var(--red)' };
+      const estadoEmoji = { pendiente: '⏳', aceptada: '✅', rechazada: '❌' };
+
+      let html = '';
+
+      if (solicitudes.length > 0) {
+        html += `<div style="font-weight:600;margin-bottom:12px;font-family:var(--fhead)">📬 Solicitudes recibidas</div>`;
+        html += solicitudes.map(s => `
+          <div class="solicitud-card">
+            <div class="solicitud-header">
+              <span style="font-weight:500">👤 ${s.alumno_nombre}</span>
+              <span style="color:${estadoColor[s.estado]}">${estadoEmoji[s.estado]} ${s.estado}</span>
+            </div>
+            <p style="font-size:13px;color:var(--muted2);margin:8px 0">${s.mensaje}</p>
+            ${s.estado === 'pendiente' ? `
+              <div class="form-row" style="margin-top:8px">
+                <button class="btn btn-sm" onclick="responderSolicitud('${s.id}','aceptada')">✅ Aceptar</button>
+                <button class="btn btn-ghost btn-sm" onclick="responderSolicitud('${s.id}','rechazada')">❌ Rechazar</button>
+              </div>` : ''}
+          </div>`).join('');
+      }
+
+      if (enviadas && enviadas.length > 0) {
+        html += `<div style="font-weight:600;margin:20px 0 12px;font-family:var(--fhead)">📤 Mis solicitudes enviadas</div>`;
+        html += enviadas.map(s => `
+          <div class="solicitud-card">
+            <div class="solicitud-header">
+              <span style="font-weight:500">🎓 ${s.tutores?.nombre || 'Tutor'} — ${s.tutores?.materia || ''}</span>
+              <span style="color:${estadoColor[s.estado]}">${estadoEmoji[s.estado]} ${s.estado}</span>
+            </div>
+            <p style="font-size:13px;color:var(--muted2);margin-top:6px">${s.mensaje}</p>
+          </div>`).join('');
+      }
+
+      if (!html) { vacio('lista-solicitudes', '📬', 'No hay solicitudes todavía.'); return; }
+      $('lista-solicitudes').innerHTML = html;
+    }
+
+    window.responderSolicitud = async (id, estado) => {
+      await db.from('solicitudes_clase').update({ estado }).eq('id', id);
+      cargarSolicitudes();
+    };
+
     // ── RANKING ─────────────────────────────────────────────────
     $('btn-ir-ranking').onclick   = () => { ir('pantalla-ranking'); cargarRanking(); };
 
@@ -1610,6 +1914,7 @@
 
       $('nav-grupos').onclick  = () => { ir('pantalla-inicio'); setNavActivo('nav-grupos'); };
       $('nav-foro').onclick    = () => { ir('pantalla-foro');   $('foro-avatar').textContent = usuario.nombre[0].toUpperCase(); $('foro-nombre').textContent = usuario.nombre; mostrarListaForo(); cargarPreguntas(); setNavActivo('nav-foro'); };
+      $('nav-clases').onclick  = () => { irClases(); setNavActivo('nav-clases'); };
       $('nav-ranking').onclick = () => { ir('pantalla-ranking'); cargarRanking(); setNavActivo('nav-ranking'); };
       $('nav-mensajes').onclick= () => { ir('pantalla-bandeja'); cargarBandeja(); setNavActivo('nav-mensajes'); };
       $('nav-perfil').onclick  = () => { abrirPerfil(); setNavActivo('nav-perfil'); };
