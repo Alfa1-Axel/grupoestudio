@@ -71,6 +71,9 @@
       <div class="topbar-right">
         <button class="btn btn-ghost btn-sm" id="btn-ir-foro">💬 Foro</button>
         <button class="btn btn-ghost btn-sm" id="btn-ir-ranking">🏆 Ranking</button>
+        <button class="btn btn-ghost btn-sm" id="btn-ir-bandeja" style="position:relative">
+          ✉️ <span id="badge-no-leidos" class="badge-noread oculto">0</span>
+        </button>
         <div class="user-chip" id="btn-ir-perfil" style="cursor:pointer" title="Mi perfil">
           <div class="avatar-sm" id="inicio-avatar"></div>
           <span id="inicio-nombre"></span>
@@ -355,6 +358,41 @@
         <div><h2>Tabla de líderes</h2><p class="page-sub">Los más activos de la comunidad</p></div>
       </div>
       <div id="lista-ranking"><p class="cargando">Cargando ranking...</p></div>
+    </div>
+  </div>
+
+  <!-- MENSAJES PRIVADOS -->
+  <div class="pantalla oculto" id="pantalla-dm">
+    <div class="topbar">
+      <div class="topbar-back" id="btn-volver-dm">← Volver</div>
+      <span class="topbar-titulo" id="dm-titulo"></span>
+      <div style="width:80px"></div>
+    </div>
+    <div id="tab-dm">
+      <div class="mensajes" id="dm-mensajes"></div>
+      <div class="chat-input-wrap">
+        <label class="btn-foto-chat" title="Enviar foto">
+          📷
+          <input type="file" id="dm-foto-input" accept="image/*" style="display:none" />
+        </label>
+        <input type="text" id="dm-input" placeholder="Escribí un mensaje privado..." />
+        <button class="btn" id="btn-dm-enviar">Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BANDEJA DE ENTRADA -->
+  <div class="pantalla oculto" id="pantalla-bandeja">
+    <div class="topbar">
+      <div class="topbar-back" id="btn-volver-bandeja">← Volver</div>
+      <div class="topbar-brand">✉️ Mensajes</div>
+      <div style="width:80px"></div>
+    </div>
+    <div class="page-wrap">
+      <div class="page-header">
+        <div><h2>Mensajes privados</h2><p class="page-sub">Tus conversaciones</p></div>
+      </div>
+      <div id="lista-conversaciones"><p class="cargando">Cargando...</p></div>
     </div>
   </div>
 
@@ -1280,6 +1318,7 @@
 
       $('lista-miembros').innerHTML = miembros.map(email => {
         const isOnline = onlineUsers.has(email);
+        const esYo = email === usuario.email;
         return `<div class="miembro-item">
           <div class="miembro-avatar" style="position:relative">
             ${email[0].toUpperCase()}
@@ -1287,11 +1326,17 @@
           </div>
           <div class="miembro-datos">
             <span>${email}</span>
-            ${email === usuario.email ? '<span class="badge-vos">Vos</span>' : ''}
+            ${esYo ? '<span class="badge-vos">Vos</span>' : ''}
             ${isOnline ? '<span class="badge-online">online</span>' : ''}
           </div>
+          ${!esYo ? `<button class="btn-dm" data-email="${email}" data-nombre="${email.split('@')[0]}">💬</button>` : ''}
         </div>`;
       }).join('');
+
+      // Botones DM
+      document.querySelectorAll('.btn-dm').forEach(btn => {
+        btn.addEventListener('click', () => abrirDM(btn.dataset.email, btn.dataset.nombre));
+      });
     }
 
     // ── PERFIL ──────────────────────────────────────────────────
@@ -1566,6 +1611,181 @@
         </div>`;
       }).join('');
     }
+
+    // ── MENSAJES PRIVADOS ────────────────────────────────────────
+    let dmSub        = null;
+    let dmActual     = null; // { email, nombre }
+    const dmRendered = new Set();
+
+    $('btn-ir-bandeja').onclick    = () => { ir('pantalla-bandeja'); cargarBandeja(); };
+    $('btn-volver-bandeja').onclick = () => ir('pantalla-inicio');
+    $('btn-volver-dm').onclick     = () => {
+      if (dmSub) { db.removeChannel(dmSub); dmSub = null; }
+      dmActual = null;
+      ir('pantalla-bandeja');
+      cargarBandeja();
+    };
+
+    async function abrirDM(emailDest, nombreDest) {
+      dmActual = { email: emailDest, nombre: nombreDest };
+      dmRendered.clear();
+      if (dmSub) { db.removeChannel(dmSub); dmSub = null; }
+
+      ir('pantalla-dm');
+      $('dm-titulo').textContent = '💬 ' + nombreDest;
+      cargando('dm-mensajes');
+
+      // Suscribir realtime
+      dmSub = db.channel('dm-' + [usuario.email, emailDest].sort().join('-'))
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'public', table: 'mensajes_privados'
+        }, payload => {
+          const m = payload.new;
+          const involucra = (m.de_email === usuario.email && m.para_email === emailDest) ||
+                            (m.de_email === emailDest && m.para_email === usuario.email);
+          if (!involucra || dmRendered.has(m.id)) return;
+          dmRendered.add(m.id);
+          const vac = $('dm-mensajes').querySelector('.vacio');
+          if (vac) $('dm-mensajes').innerHTML = '';
+          $('dm-mensajes').insertAdjacentHTML('beforeend', htmlDM(m));
+          $('dm-mensajes').scrollTop = $('dm-mensajes').scrollHeight;
+          if (m.de_email !== usuario.email) mostrarNotificacion(m.de_nombre, m.texto);
+          // Marcar como leído
+          db.from('mensajes_privados').update({ leido: true }).eq('id', m.id).then(() => actualizarBadge());
+        })
+        .subscribe();
+
+      // Cargar historial
+      const { data } = await db.from('mensajes_privados')
+        .select('*')
+        .or(`and(de_email.eq.${usuario.email},para_email.eq.${emailDest}),and(de_email.eq.${emailDest},para_email.eq.${usuario.email})`)
+        .order('hora', { ascending: true });
+
+      // Marcar como leídos
+      if (data?.length) {
+        const noLeidos = data.filter(m => m.para_email === usuario.email && !m.leido).map(m => m.id);
+        if (noLeidos.length) {
+          await db.from('mensajes_privados').update({ leido: true }).in('id', noLeidos);
+          actualizarBadge();
+        }
+      }
+
+      if (!data || data.length === 0) {
+        $('dm-mensajes').innerHTML = '<div class="vacio" style="margin:auto">💬 Empezá la conversación</div>';
+      } else {
+        $('dm-mensajes').innerHTML = data.map(m => { dmRendered.add(m.id); return htmlDM(m); }).join('');
+        $('dm-mensajes').scrollTop = $('dm-mensajes').scrollHeight;
+      }
+
+      $('dm-input').disabled  = false;
+      $('btn-dm-enviar').disabled = false;
+      $('dm-input').focus();
+    }
+
+    function htmlDM(m) {
+      const esPropio = m.de_email === usuario.email;
+      const hora = m.hora
+        ? new Date(m.hora).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+        : '';
+      const contenido = m.imagen_url
+        ? `<img src="${m.imagen_url}" class="msg-img" onclick="window.open('${m.imagen_url}','_blank')" />`
+        : `<div class="texto">${m.texto}</div>`;
+      return `<div class="mensaje ${esPropio ? 'propio' : 'otro'}">
+        ${!esPropio ? `<div class="autor">${m.de_nombre}</div>` : ''}
+        ${contenido}
+        <div class="hora">${hora}${!esPropio && m.leido ? ' ✓' : ''}</div>
+      </div>`;
+    }
+
+    $('btn-dm-enviar').onclick = enviarDM;
+    $('dm-input').addEventListener('keypress', e => { if (e.key === 'Enter') enviarDM(); });
+
+    async function enviarDM() {
+      const texto = $('dm-input').value.trim();
+      if (!texto || !dmActual) return;
+      $('dm-input').value = '';
+      $('dm-input').focus();
+      db.from('mensajes_privados').insert({
+        de_email:  usuario.email,
+        de_nombre: usuario.nombre,
+        para_email: dmActual.email,
+        texto
+      }).then(({ error }) => { if (error) console.error(error); });
+    }
+
+    // Foto en DM
+    $('dm-foto-input').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file || !dmActual) return;
+      e.target.value = '';
+      const btn = document.querySelector('#pantalla-dm .btn-foto-chat');
+      btn.textContent = '⏳';
+      try {
+        const url = await subirImagenCloudinary(file, 'dm');
+        db.from('mensajes_privados').insert({
+          de_email:   usuario.email,
+          de_nombre:  usuario.nombre,
+          para_email: dmActual.email,
+          texto:      '',
+          imagen_url: url
+        });
+      } catch(e) { alert('Error subiendo imagen'); }
+      finally { btn.textContent = '📷'; }
+    });
+
+    // ── BANDEJA ──────────────────────────────────────────────────
+    async function cargarBandeja() {
+      cargando('lista-conversaciones');
+
+      // Obtener todos los mensajes donde soy parte
+      const { data } = await db.from('mensajes_privados')
+        .select('*')
+        .or(`de_email.eq.${usuario.email},para_email.eq.${usuario.email}`)
+        .order('hora', { ascending: false });
+
+      if (!data || data.length === 0) {
+        vacio('lista-conversaciones', '✉️', 'No tenés mensajes todavía.');
+        return;
+      }
+
+      // Agrupar por conversación
+      const convs = {};
+      data.forEach(m => {
+        const otro = m.de_email === usuario.email ? m.para_email : m.de_email;
+        const otroNombre = m.de_email === usuario.email ? m.para_email.split('@')[0] : m.de_nombre;
+        if (!convs[otro]) convs[otro] = { email: otro, nombre: otroNombre, ultimo: m, noLeidos: 0 };
+        if (m.para_email === usuario.email && !m.leido) convs[otro].noLeidos++;
+      });
+
+      $('lista-conversaciones').innerHTML = Object.values(convs).map(c => `
+        <div class="conv-item" data-email="${c.email}" data-nombre="${c.nombre}">
+          <div class="miembro-avatar">${c.nombre[0].toUpperCase()}</div>
+          <div class="miembro-datos">
+            <span style="font-weight:500">${c.nombre}</span>
+            <span style="font-size:12px;color:var(--muted2)">${c.ultimo.texto || '📷 Imagen'}</span>
+          </div>
+          ${c.noLeidos > 0 ? `<span class="badge-noread">${c.noLeidos}</span>` : ''}
+        </div>`).join('');
+
+      document.querySelectorAll('.conv-item').forEach(item => {
+        item.addEventListener('click', () => abrirDM(item.dataset.email, item.dataset.nombre));
+      });
+    }
+
+    async function actualizarBadge() {
+      const { count } = await db.from('mensajes_privados')
+        .select('*', { count: 'exact', head: true })
+        .eq('para_email', usuario.email)
+        .eq('leido', false);
+      const badge = $('badge-no-leidos');
+      if (count > 0) { badge.textContent = count; badge.classList.remove('oculto'); }
+      else { badge.classList.add('oculto'); }
+    }
+
+    // Verificar mensajes no leídos al cargar
+    db.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) actualizarBadge();
+    });
 
     // ── FORO ────────────────────────────────────────────────────
     let categoriaActual  = '';

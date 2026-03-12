@@ -1136,3 +1136,57 @@ textarea::placeholder { color: var(--muted); }
   border-radius: 6px;
   transition: width 0.6s ease;
 }
+
+/* ════════════════════════════════════════
+   MENSAJES PRIVADOS
+════════════════════════════════════════ */
+#tab-dm {
+  position: fixed;
+  top: 56px;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.btn-dm {
+  background: rgba(79,142,247,0.1);
+  border: 1px solid rgba(79,142,247,0.2);
+  border-radius: 20px;
+  color: var(--accent);
+  font-size: 14px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: auto;
+  flex-shrink: 0;
+  font-family: var(--fbody);
+}
+.btn-dm:hover { background: rgba(79,142,247,0.2); }
+
+/* Badge mensajes no leídos */
+.badge-noread {
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 20px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* Conversaciones en bandeja */
+.conv-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.conv-item:hover { border-color: var(--border2); transform: translateY(-1px); }
