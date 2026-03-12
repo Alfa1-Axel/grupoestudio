@@ -459,7 +459,10 @@
     }
 
     function htmlMensaje(m) {
-      const esPropio = m.email === usuario.email;
+      // Comparar en minúsculas para evitar problemas de capitalización
+      const miEmail  = (usuario?.email || '').toLowerCase().trim();
+      const msgEmail = (m.email || '').toLowerCase().trim();
+      const esPropio = miEmail !== '' && miEmail === msgEmail;
       const hora = m.hora
         ? new Date(m.hora).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
         : '';
