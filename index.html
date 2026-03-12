@@ -438,6 +438,15 @@
           console.log('Chat realtime status:', status);
         });
 
+      // Esperar que el usuario esté completamente cargado
+      if (!usuario?.email) {
+        const { data: { session } } = await db.auth.getSession();
+        if (session?.user) {
+          usuario.email  = session.user.email;
+          usuario.nombre = session.user.user_metadata?.nombre || session.user.email;
+        }
+      }
+
       // Cargar mensajes existentes
       const { data } = await db
         .from('mensajes')
