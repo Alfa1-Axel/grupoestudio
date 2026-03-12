@@ -441,55 +441,59 @@ select option { background: var(--surface2); }
 
 /* ── Chat ── */
 #tab-chat {
-  display: flex;
-  flex-direction: column;
   position: fixed;
   top: 110px;
   left: 0; right: 0; bottom: 0;
-  width: 100%;
-  /* En móvil el teclado virtual no mueve el layout */
-  height: calc(100dvh - 110px);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 .mensajes {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  overflow-x: hidden;
+  padding: 16px 20px;
   display: flex;
-  flex-direction: column-reverse;
-  gap: 8px;
-  width: 100%;
+  flex-direction: column;
+  gap: 6px;
   scrollbar-width: thin;
   scrollbar-color: var(--border2) transparent;
 }
 .mensaje {
+  display: block;
   max-width: 65%;
   border-radius: 16px;
   padding: 10px 14px;
   font-size: 14px;
   line-height: 1.55;
-  animation: fadeUp 0.2s ease both;
   word-break: break-word;
+  clear: both;
 }
 .mensaje.propio {
-  align-self: flex-end;
-  margin-left: auto;
+  float: right;
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   color: #fff;
   border-bottom-right-radius: 4px;
   box-shadow: 0 4px 16px rgba(79,142,247,0.22);
+  margin-left: auto;
 }
 .mensaje.otro {
-  align-self: flex-start;
-  margin-right: auto;
+  float: left;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-bottom-left-radius: 4px;
+  margin-right: auto;
+}
+/* Clearfix para float */
+.mensajes::after {
+  content: '';
+  display: table;
+  clear: both;
 }
 .mensaje .autor { font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 3px; }
 .mensaje .texto { word-break: break-word; }
 .mensaje .hora  { font-size: 10px; opacity: 0.5; margin-top: 4px; text-align: right; }
-.mensaje.propio .hora { color: rgba(255,255,255,0.75); opacity: 1; }
+.mensaje.propio .hora  { color: rgba(255,255,255,0.75); opacity: 1; }
 .mensaje.propio .autor { display: none; }
 
 .chat-input-wrap {
