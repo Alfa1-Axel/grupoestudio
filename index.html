@@ -165,23 +165,23 @@
     <!-- VIDEO -->
     <div class="tab-content oculto" id="tab-video">
       <div class="tab-inner" style="display:flex;flex-direction:column;align-items:center;gap:20px;padding-top:40px">
-        <div id="video-estado">
-          <div style="text-align:center">
-            <div style="font-size:64px;margin-bottom:16px">📹</div>
-            <h3 style="font-family:var(--fhead);font-size:20px;margin-bottom:8px">Videollamada grupal</h3>
-            <p style="color:var(--muted2);font-size:14px;margin-bottom:24px">Todos los miembros del grupo pueden unirse</p>
-            <button class="btn" id="btn-iniciar-video" style="min-width:180px">🚀 Iniciar videollamada</button>
+        <div style="text-align:center">
+          <div style="font-size:64px;margin-bottom:16px">📹</div>
+          <h3 style="font-family:var(--fhead);font-size:20px;margin-bottom:8px">Videollamada grupal</h3>
+          <p style="color:var(--muted2);font-size:14px;margin-bottom:8px">Creá una reunión de Google Meet y compartila con el grupo</p>
+          <p style="color:var(--muted);font-size:12px;margin-bottom:24px">Gratis · Sin límite de tiempo · Hasta 100 personas</p>
+          <button class="btn" id="btn-iniciar-video" style="min-width:220px;gap:10px">
+            <img src="https://fonts.gstatic.com/s/i/productlogos/meet_2020q4/v1/web-64dp/logo_meet_2020q4_color_2x_web_64dp.png" style="width:20px;height:20px;vertical-align:middle" />
+            Crear reunión de Meet
+          </button>
+          <div id="meet-link-wrap" class="oculto" style="margin-top:24px">
+            <div class="form-card" style="text-align:left">
+              <p style="font-size:13px;color:var(--muted2);margin-bottom:10px">✅ Reunión creada y compartida en el chat</p>
+              <a id="meet-link" href="#" target="_blank" class="btn btn-sm" style="display:inline-flex;align-items:center;gap:8px">
+                🔗 Abrir en Google Meet
+              </a>
+            </div>
           </div>
-        </div>
-        <div id="video-frame-wrap" class="oculto" style="width:100%;max-width:900px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-            <span style="font-size:14px;color:var(--muted2)">📹 Videollamada activa</span>
-            <button class="btn btn-ghost btn-sm" id="btn-salir-video">🚪 Salir</button>
-          </div>
-          <iframe id="video-iframe"
-            allow="camera; microphone; fullscreen; display-capture; autoplay"
-            style="width:100%;height:520px;border:none;border-radius:16px;background:#000">
-          </iframe>
         </div>
       </div>
     </div>
@@ -935,49 +935,47 @@
 
 
 
-    // ── VIDEOLLAMADAS (Jitsi — 100% gratis) ─────────────────────
-    function jitsiURL(salaId) {
-      return 'https://meet.jit.si/grupoestudio-' + salaId;
+    // ── VIDEOLLAMADAS (Google Meet) ──────────────────────────────
+    function meetURL() {
+      // Genera un código de sala aleatorio estilo Google Meet (xxx-xxxx-xxx)
+      const chars = 'abcdefghijklmnopqrstuvwxyz';
+      const seg = (n) => Array.from({length: n}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+      return `https://meet.google.com/${seg(3)}-${seg(4)}-${seg(3)}`;
     }
 
     $('btn-iniciar-video').onclick = () => {
-      const url = jitsiURL(grupoActual.id.slice(0, 12));
-      $('video-estado').classList.add('oculto');
-      $('video-frame-wrap').classList.remove('oculto');
-      $('video-iframe').src = url;
-    };
-
-    $('btn-salir-video').onclick = () => {
-      $('video-iframe').src = '';
-      $('video-frame-wrap').classList.add('oculto');
-      $('video-estado').classList.remove('oculto');
+      const url = meetURL();
+      // Compartir el link en el chat del grupo
+      db.from('mensajes').insert({
+        grupo_id: grupoActual.id,
+        autor:    usuario.nombre,
+        email:    usuario.email,
+        texto:    `📹 ${usuario.nombre} inició una videollamada de Google Meet:
+${url}`
+      });
+      // Mostrar link en el tab
+      const linkEl = $('meet-link');
+      linkEl.href = url;
+      linkEl.textContent = '🔗 Abrir en Google Meet';
+      $('meet-link-wrap').classList.remove('oculto');
+      // Abrir en nueva pestaña
+      window.open(url, '_blank');
     };
 
     // ── VIDEO EN DM (tutor-alumno) ───────────────────────────────
     $('btn-dm-video').onclick = () => {
       if (!dmActual) return;
-      const emails   = [usuario.email, dmActual.email].sort().join('-');
-      const salaId   = btoa(emails).replace(/[^a-z0-9]/gi, '').slice(0, 20).toLowerCase();
-      const url      = jitsiURL(salaId);
-
-      $('dm-video-titulo').textContent = '📹 Videollamada con ' + dmActual.nombre;
-      $('dm-video-iframe').src = url;
-      $('dm-video-wrap').classList.remove('oculto');
-      $('dm-video-wrap').style.display = 'flex';
-
-      // Avisar al otro por DM
+      const url = meetURL();
+      // Mandar el link por DM
       db.from('mensajes_privados').insert({
         de_email:   usuario.email,
         de_nombre:  usuario.nombre,
         para_email: dmActual.email,
-        texto:      '📹 Te invité a una videollamada. Andá a Mensajes → este chat → botón 📹 para unirte.'
+        texto:      `📹 Te invité a una videollamada de Google Meet:
+${url}`
       });
-    };
-
-    $('btn-cerrar-dm-video').onclick = () => {
-      $('dm-video-iframe').src = '';
-      $('dm-video-wrap').classList.add('oculto');
-      $('dm-video-wrap').style.display = 'none';
+      // Abrir en nueva pestaña
+      window.open(url, '_blank');
     };
 
         // ── GAMIFICACIÓN ─────────────────────────────────────────────
