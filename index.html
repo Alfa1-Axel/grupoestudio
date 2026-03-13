@@ -927,9 +927,13 @@
     const SUPABASE_URL  = 'https://zfxmzqwlcvtrsbvzhgjj.supabase.co';
     const SUPABASE_KEY  = 'sb_publishable_UE_DedafRcof_6fNuKfSvw_qiqVX7at';
     const db            = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const $ = id => document.getElementById(id);
 
     const CLOUD_NAME    = 'dhtyvavcy';
     const CLOUD_PRESET  = 'grupoestudio';
+
+
+
 
     // ── VIDEOLLAMADAS (Daily.co) ─────────────────────────────────
     const DAILY_API_KEY = '6265301d1eaf438e41b7ff58c6e2142d248e3d0193370351707132dbd34206cf';
@@ -938,7 +942,7 @@
     function sanitizarSala(nombre) {
       return nombre
         .toLowerCase()
-        .normalize('NFD').replace(/[̀-ͯ]/g, '') // quitar tildes
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar tildes
         .replace(/[^a-z0-9-]/g, '-')
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '')
@@ -1050,7 +1054,7 @@
       $('dm-video-wrap').style.display = 'none';
     };
 
-    // ── GAMIFICACIÓN ─────────────────────────────────────────────
+        // ── GAMIFICACIÓN ─────────────────────────────────────────────
     const NIVELES = [
       { nivel: 1, nombre: 'Novato',      min: 0,   emoji: '🌱' },
       { nivel: 2, nombre: 'Estudiante',  min: 50,  emoji: '📖' },
@@ -1084,7 +1088,6 @@
     let chatSub     = null;
 
     // ── UTILIDADES ──────────────────────────────────────────────
-    const $ = id => document.getElementById(id);
 
     function ir(pantalla) {
       document.querySelectorAll('.pantalla').forEach(p => p.classList.add('oculto'));
