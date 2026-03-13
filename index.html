@@ -176,9 +176,10 @@
           </button>
           <div id="meet-link-wrap" class="oculto" style="margin-top:24px">
             <div class="form-card" style="text-align:left">
-              <p style="font-size:13px;color:var(--muted2);margin-bottom:10px">✅ Reunión creada y compartida en el chat</p>
-              <a id="meet-link" href="#" target="_blank" class="btn btn-sm" style="display:inline-flex;align-items:center;gap:8px">
-                🔗 Abrir en Google Meet
+              <p style="font-size:13px;color:var(--muted2);margin-bottom:10px">✅ Se abrió Google Meet en una nueva pestaña</p>
+              <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Una vez que tengas el link de la reunión, copialo y pegalo en el chat para que todos puedan unirse.</p>
+              <a href="https://meet.google.com/new" target="_blank" class="btn btn-sm" style="display:inline-flex;align-items:center;gap:8px">
+                🔗 Abrir Meet de nuevo
               </a>
             </div>
           </div>
@@ -936,46 +937,27 @@
 
 
     // ── VIDEOLLAMADAS (Google Meet) ──────────────────────────────
-    function meetURL() {
-      // Genera un código de sala aleatorio estilo Google Meet (xxx-xxxx-xxx)
-      const chars = 'abcdefghijklmnopqrstuvwxyz';
-      const seg = (n) => Array.from({length: n}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
-      return `https://meet.google.com/${seg(3)}-${seg(4)}-${seg(3)}`;
-    }
-
     $('btn-iniciar-video').onclick = () => {
-      const url = meetURL();
-      // Compartir el link en el chat del grupo
+      window.open('https://meet.google.com/new', '_blank');
+      $('meet-link-wrap').classList.remove('oculto');
       db.from('mensajes').insert({
         grupo_id: grupoActual.id,
         autor:    usuario.nombre,
         email:    usuario.email,
-        texto:    `📹 ${usuario.nombre} inició una videollamada de Google Meet:
-${url}`
+        texto:    '📹 ' + usuario.nombre + ' inició una videollamada en Google Meet. Copiá el link de Meet y pegalo acá para que todos se unan.'
       });
-      // Mostrar link en el tab
-      const linkEl = $('meet-link');
-      linkEl.href = url;
-      linkEl.textContent = '🔗 Abrir en Google Meet';
-      $('meet-link-wrap').classList.remove('oculto');
-      // Abrir en nueva pestaña
-      window.open(url, '_blank');
     };
 
     // ── VIDEO EN DM (tutor-alumno) ───────────────────────────────
     $('btn-dm-video').onclick = () => {
       if (!dmActual) return;
-      const url = meetURL();
-      // Mandar el link por DM
+      window.open('https://meet.google.com/new', '_blank');
       db.from('mensajes_privados').insert({
         de_email:   usuario.email,
         de_nombre:  usuario.nombre,
         para_email: dmActual.email,
-        texto:      `📹 Te invité a una videollamada de Google Meet:
-${url}`
+        texto:      '📹 Te invité a una videollamada de Google Meet. Abrí Meet, copiá el link y mandamelo para unirme.'
       });
-      // Abrir en nueva pestaña
-      window.open(url, '_blank');
     };
 
         // ── GAMIFICACIÓN ─────────────────────────────────────────────
