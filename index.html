@@ -146,6 +146,7 @@
       <button class="tab-btn" data-tab="archivos">📂 Archivos</button>
       <button class="tab-btn" data-tab="calendario">📅 Calendario</button>
       <button class="tab-btn" data-tab="miembros">👥 Miembros</button>
+      <button class="tab-btn" data-tab="video">📹 Video</button>
     </div>
 
     <!-- CHAT -->
@@ -158,6 +159,30 @@
         </label>
         <input type="text" id="msg-input" placeholder="Escribí un mensaje..." />
         <button class="btn" id="btn-enviar">Enviar</button>
+      </div>
+    </div>
+
+    <!-- VIDEO -->
+    <div class="tab-content oculto" id="tab-video">
+      <div class="tab-inner" style="display:flex;flex-direction:column;align-items:center;gap:20px;padding-top:40px">
+        <div id="video-estado">
+          <div style="text-align:center">
+            <div style="font-size:64px;margin-bottom:16px">📹</div>
+            <h3 style="font-family:var(--fhead);font-size:20px;margin-bottom:8px">Videollamada grupal</h3>
+            <p style="color:var(--muted2);font-size:14px;margin-bottom:24px">Todos los miembros del grupo pueden unirse</p>
+            <button class="btn" id="btn-iniciar-video" style="min-width:180px">🚀 Iniciar videollamada</button>
+          </div>
+        </div>
+        <div id="video-frame-wrap" class="oculto" style="width:100%;max-width:900px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <span style="font-size:14px;color:var(--muted2)">📹 Videollamada activa</span>
+            <button class="btn btn-ghost btn-sm" id="btn-salir-video">🚪 Salir</button>
+          </div>
+          <iframe id="video-iframe"
+            allow="camera; microphone; fullscreen; display-capture; autoplay"
+            style="width:100%;height:520px;border:none;border-radius:16px;background:#000">
+          </iframe>
+        </div>
       </div>
     </div>
 
@@ -400,8 +425,21 @@
           <input type="file" id="dm-foto-input" accept="image/*" style="display:none" />
         </label>
         <input type="text" id="dm-input" placeholder="Escribí un mensaje privado..." />
+        <button class="btn-foto-chat" id="btn-dm-video" title="Videollamada">📹</button>
         <button class="btn" id="btn-dm-enviar">Enviar</button>
       </div>
+    </div>
+
+    <!-- VIDEO DM -->
+    <div class="oculto" id="dm-video-wrap" style="position:fixed;inset:0;background:#000;z-index:300;display:flex;flex-direction:column">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:rgba(13,17,23,0.95)">
+        <span style="font-size:14px;color:var(--muted2)" id="dm-video-titulo">📹 Videollamada</span>
+        <button class="btn btn-ghost btn-sm" id="btn-cerrar-dm-video">✕ Cerrar</button>
+      </div>
+      <iframe id="dm-video-iframe"
+        allow="camera; microphone; fullscreen; display-capture; autoplay"
+        style="flex:1;border:none;background:#000">
+      </iframe>
     </div>
   </div>
 
@@ -893,6 +931,125 @@
     const CLOUD_NAME    = 'dhtyvavcy';
     const CLOUD_PRESET  = 'grupoestudio';
 
+    // ── VIDEOLLAMADAS (Daily.co) ─────────────────────────────────
+    const DAILY_API_KEY = '6265301d1eaf438e41b7ff58c6e2142d248e3d0193370351707132dbd34206cf';
+
+    // Sanitizar nombre del grupo para usar como nombre de sala
+    function sanitizarSala(nombre) {
+      return nombre
+        .toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '') // quitar tildes
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 40) || 'sala';
+    }
+
+    async function crearOObtenerSala(grupoId, grupoNombre) {
+      const salaName = 'ge-' + grupoId.slice(0, 8);
+      // Intentar crear la sala (si ya existe Daily devuelve error, la buscamos)
+      const res = await fetch('https://api.daily.co/v1/rooms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + DAILY_API_KEY
+        },
+        body: JSON.stringify({
+          name: salaName,
+          privacy: 'public',
+          properties: {
+            enable_chat: true,
+            enable_screenshare: true,
+            max_participants: 20,
+            exp: Math.floor(Date.now()/1000) + 60*60*4 // expira en 4 horas
+          }
+        })
+      });
+      const data = await res.json();
+      // Si ya existe, Daily devuelve error con el nombre — igual podemos armar la URL
+      if (data.url) return data.url;
+      // Si ya existía, construimos la URL directamente
+      return `https://grupoestudi.daily.co/${salaName}`;
+    }
+
+    $('btn-iniciar-video').onclick = async () => {
+      const btn = $('btn-iniciar-video');
+      btn.textContent = '⏳ Creando sala...';
+      btn.disabled = true;
+      try {
+        const url = await crearOObtenerSala(grupoActual.id, grupoActual.nombre);
+        $('video-estado').classList.add('oculto');
+        $('video-frame-wrap').classList.remove('oculto');
+        $('video-iframe').src = url;
+      } catch(e) {
+        alert('Error al crear la sala: ' + e.message);
+      } finally {
+        btn.textContent = '🚀 Iniciar videollamada';
+        btn.disabled = false;
+      }
+    };
+
+    $('btn-salir-video').onclick = () => {
+      $('video-iframe').src = '';
+      $('video-frame-wrap').classList.add('oculto');
+      $('video-estado').classList.remove('oculto');
+    };
+
+    // ── VIDEO EN DM (tutor-alumno) ───────────────────────────────
+    $('btn-dm-video').onclick = async () => {
+      if (!dmActual) return;
+      const btn = $('btn-dm-video');
+      btn.textContent = '⏳';
+      try {
+        // Sala única para esta conversación
+        const emails  = [usuario.email, dmActual.email].sort();
+        const salaName = 'dm-' + btoa(emails.join('|')).replace(/[^a-z0-9]/gi, '').slice(0, 30).toLowerCase();
+
+        const res = await fetch('https://api.daily.co/v1/rooms', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + DAILY_API_KEY
+          },
+          body: JSON.stringify({
+            name: salaName,
+            privacy: 'public',
+            properties: {
+              enable_chat: false,
+              enable_screenshare: true,
+              max_participants: 2,
+              exp: Math.floor(Date.now()/1000) + 60*60*2
+            }
+          })
+        });
+        const data = await res.json();
+        const url  = data.url || `https://grupoestudi.daily.co/${salaName}`;
+
+        $('dm-video-titulo').textContent = '📹 Videollamada con ' + dmActual.nombre;
+        $('dm-video-iframe').src = url;
+        $('dm-video-wrap').classList.remove('oculto');
+        $('dm-video-wrap').style.display = 'flex';
+
+        // Mandar mensaje en el DM avisando
+        db.from('mensajes_privados').insert({
+          de_email:   usuario.email,
+          de_nombre:  usuario.nombre,
+          para_email: dmActual.email,
+          texto:      '📹 Te invité a una videollamada. Andá a Mensajes → este chat → botón 📹 para unirte.'
+        });
+      } catch(e) {
+        alert('Error al crear la videollamada');
+      } finally {
+        btn.textContent = '📹';
+      }
+    };
+
+    $('btn-cerrar-dm-video').onclick = () => {
+      $('dm-video-iframe').src = '';
+      $('dm-video-wrap').classList.add('oculto');
+      $('dm-video-wrap').style.display = 'none';
+    };
+
     // ── GAMIFICACIÓN ─────────────────────────────────────────────
     const NIVELES = [
       { nivel: 1, nombre: 'Novato',      min: 0,   emoji: '🌱' },
@@ -1135,6 +1292,12 @@
       if (tab === 'archivos')   cargarArchivos();
       if (tab === 'calendario') cargarEventos();
       if (tab === 'miembros')   cargarMiembros();
+      if (tab === 'video') {
+        // Resetear estado al entrar al tab
+        $('video-iframe').src = '';
+        $('video-frame-wrap').classList.add('oculto');
+        $('video-estado').classList.remove('oculto');
+      }
     }
 
     // ── CHAT ────────────────────────────────────────────────────
