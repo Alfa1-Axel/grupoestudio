@@ -1195,8 +1195,9 @@
 
     $('btn-cancelar-grupo').onclick = () => {
       $('form-grupo').classList.add('oculto');
-      $('nuevo-nombre').value  = '';
-      $('nuevo-materia').value = '';
+      $('nuevo-nombre').value   = '';
+      $('nuevo-materia').value  = '';
+      $('nuevo-privado').checked = false;
     };
 
     $('btn-crear-grupo').onclick = async () => {
@@ -1442,9 +1443,11 @@
     $('chat-foto-input').addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file || !grupoActual) return;
+      // Mantener foco en el chat
+      setTimeout(() => $('msg-input').focus(), 100);
       e.target.value = '';
-      const btn = document.querySelector('.btn-foto-chat');
-      btn.textContent = '⏳';
+      const btn = document.querySelector('#tab-chat .btn-foto-chat');
+      if (btn) btn.textContent = '⏳';
       try {
         const url = await subirImagenCloudinary(file, grupoActual.id);
         db.from('mensajes').insert({
@@ -1505,6 +1508,8 @@
       });
     }
 
+    $('file-input').addEventListener('focus', e => e.target.blur()); // evitar scroll al abrir
+
     $('btn-subir').onclick = async () => {
       let file = $('file-input').files[0];
       if (!file) return alert('Seleccioná un archivo primero');
@@ -1545,6 +1550,8 @@
 
         $('file-input').value = '';
         sumarPuntos(5);
+        // Quedarse en tab archivos
+        activarTab('archivos');
         cargarArchivos();
       } catch(e) {
         alert('Error al subir: ' + e.message);
@@ -1604,6 +1611,7 @@
       });
 
       $('btn-cancelar-evento').click();
+      // Quedarse en tab calendario
       cargarEventos();
     };
 
@@ -1642,7 +1650,8 @@
 
       await db.from('grupos').update({ miembros: [...miembros, email] }).eq('id', grupoActual.id);
       $('nuevo-miembro-email').value = '';
-      alert('✅ Miembro agregado');
+      $('nuevo-miembro-email').placeholder = '✅ Miembro agregado';
+      setTimeout(() => { $('nuevo-miembro-email').placeholder = 'Email del nuevo miembro'; }, 2000);
       cargarMiembros();
     };
 
@@ -2409,6 +2418,7 @@
       const { data: grupo } = await db.from('grupos').select('miembros').eq('id', grupoActual.id).single();
       const miembros = (grupo?.miembros || []).filter(e => e !== email);
       await db.from('grupos').update({ miembros }).eq('id', grupoActual.id);
+      // Quedarse en la tab miembros
       cargarMiembros();
     };
 
