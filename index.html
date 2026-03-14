@@ -1434,6 +1434,16 @@
       if (confirm(accion + ' este mensaje?')) toggleFijar(id, fijado);
     };
 
+    window.scrollAMensajeFijado = (id) => {
+      const el = $('mensajes').querySelector(`[data-id="${id}"]`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Highlight momentáneo
+      el.style.transition = 'background 0.3s';
+      el.style.background = 'rgba(79,142,247,0.15)';
+      setTimeout(() => { el.style.background = ''; }, 1500);
+    };
+
     window.toggleFijar = async (id, estaFijado) => {
       // Desfijar todos primero
       await db.from('mensajes').update({ fijado: false }).eq('grupo_id', grupoActual.id).eq('fijado', true);
@@ -2502,10 +2512,11 @@
       if (msg) {
         banner.classList.remove('oculto');
         banner.innerHTML = `
-          <div class="banner-fijado">
+          <div class="banner-fijado" onclick="scrollAMensajeFijado('${msg.id}')" style="cursor:pointer">
             <span>📌</span>
             <span class="banner-texto">${msg.imagen_url ? '📷 Imagen' : msg.texto}</span>
             <span class="banner-autor">— ${msg.autor}</span>
+            <span style="color:var(--accent);font-size:11px;flex-shrink:0">Ver ↓</span>
           </div>`;
       } else {
         banner.classList.add('oculto');
