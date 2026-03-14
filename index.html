@@ -1457,17 +1457,25 @@
     // ── TECLADO MÓVIL ────────────────────────────────────────────
     if (window.visualViewport) {
       function ajustarChat() {
-        const chat = $('tab-chat');
-        if (!chat || chat.classList.contains('oculto')) return;
-        // Calcular el espacio que ocupa el teclado
         const alturaVentana = window.innerHeight;
         const alturaVisible = window.visualViewport.height;
-        const teclado = alturaVentana - alturaVisible - window.visualViewport.offsetTop;
-        // Mover el bottom del chat hacia arriba por el teclado
-        chat.style.bottom = Math.max(0, teclado) + 'px';
-        // Scroll al último mensaje
-        const mensajes = $('mensajes');
-        if (mensajes) setTimeout(() => { mensajes.scrollTop = mensajes.scrollHeight; }, 100);
+        const teclado = Math.max(0, alturaVentana - alturaVisible - window.visualViewport.offsetTop);
+
+        // Ajustar chat grupal
+        const chat = $('tab-chat');
+        if (chat && !chat.classList.contains('oculto')) {
+          chat.style.bottom = teclado + 'px';
+          const mensajes = $('mensajes');
+          if (mensajes) setTimeout(() => { mensajes.scrollTop = mensajes.scrollHeight; }, 100);
+        }
+
+        // Ajustar DM
+        const dm = $('tab-dm');
+        if (dm && !dm.classList.contains('oculto')) {
+          dm.style.bottom = teclado + 'px';
+          const dmMensajes = $('dm-mensajes');
+          if (dmMensajes) setTimeout(() => { dmMensajes.scrollTop = dmMensajes.scrollHeight; }, 100);
+        }
       }
       window.visualViewport.addEventListener('resize', ajustarChat);
       window.visualViewport.addEventListener('scroll', ajustarChat);
