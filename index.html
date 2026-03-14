@@ -122,6 +122,16 @@
           <input type="text" id="nuevo-nombre" placeholder="Nombre del grupo" />
           <input type="text" id="nuevo-materia" placeholder="Materia" />
         </div>
+        <div class="privacidad-row" style="margin-bottom:12px">
+          <div>
+            <div class="privacidad-label">Grupo privado</div>
+            <div class="privacidad-desc">Solo entran por invitación del creador</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="nuevo-privado" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
         <div class="form-row">
           <button class="btn btn-sm" id="btn-crear-grupo">Crear grupo</button>
           <button class="btn btn-ghost btn-sm" id="btn-cancelar-grupo">Cancelar</button>
@@ -1090,7 +1100,7 @@
       cargando('lista-grupos');
       const { data, error } = await db
         .from('grupos')
-        .select('*')
+        .select('id,nombre,materia,creador,creador_email,miembros,privado,creado_el')
         .contains('miembros', [usuario.email])
         .order('creado_el', { ascending: false });
 
@@ -1107,7 +1117,7 @@
       $('lista-grupos').innerHTML = data.map(g => `
         <div class="grupo-card" data-id="${g.id}" data-nombre="${g.nombre}">
           <div class="grupo-info">
-            <h3>📘 ${g.nombre}</h3>
+            <h3>${g.privado ? '🔒' : '📘'} ${g.nombre}</h3>
             <p>${g.materia} · Creado por ${g.creador}</p>
           </div>
           <span class="tag">Entrar →</span>
@@ -1131,11 +1141,13 @@
       const materia = $('nuevo-materia').value.trim();
       if (!nombre || !materia) return alert('Completá nombre y materia');
 
+      const privado = $('nuevo-privado').checked;
       const { error } = await db.from('grupos').insert({
         nombre, materia,
         creador:       usuario.nombre,
         creador_email: usuario.email,
-        miembros:      [usuario.email]
+        miembros:      [usuario.email],
+        privado
       });
 
       if (error) { alert('Error: ' + error.message); return; }
@@ -2037,7 +2049,7 @@
       const resultados = { grupos: [], preguntas: [], tutores: [], usuarios: [] };
 
       const [rGrupos, rPreguntas, rTutores, rUsuarios] = await Promise.all([
-        db.from('grupos').select('id,nombre,materia,creador').ilike('nombre', `%${q}%`).limit(5),
+        db.from('grupos').select('id,nombre,materia,creador,privado,miembros').ilike('nombre', `%${q}%`).limit(5),
         db.from('foro_preguntas').select('id,titulo,categoria,autor').or(`titulo.ilike.%${q}%,descripcion.ilike.%${q}%`).limit(5),
         db.from('tutores').select('id,nombre,materia,precio_hora').eq('disponible', true).or(`nombre.ilike.%${q}%,materia.ilike.%${q}%`).limit(5),
         db.from('perfil_usuario').select('id,nombre,email,avatar_url').ilike('nombre', `%${q}%`).limit(5)
@@ -2059,15 +2071,23 @@
 
       if (resultados.grupos.length) {
         html += `<div class="search-section"><div class="search-section-title">📚 Grupos</div>`;
-        html += resultados.grupos.map(g => `
-          <div class="search-item" onclick="entrarGrupo('${g.id}','${g.nombre}')">
-            <div class="search-icon">📘</div>
+        html += resultados.grupos.map(g => {
+          const esMiembro = g.miembros && g.miembros.includes(usuario.email);
+          const accion = esMiembro
+            ? `onclick="entrarGrupo('${g.id}','${g.nombre}')"`
+            : g.privado
+              ? `onclick="alert('🔒 Este grupo es privado. El creador debe invitarte.')"`
+              : `onclick="unirseYEntrar('${g.id}','${g.nombre}')"`;
+          return `
+          <div class="search-item" ${accion}>
+            <div class="search-icon">${g.privado ? '🔒' : '📘'}</div>
             <div class="search-datos">
               <div class="search-nombre">${g.nombre}</div>
               <div class="search-sub">${g.materia} · ${g.creador}</div>
             </div>
-            <span class="search-arrow">→</span>
-          </div>`).join('');
+            <span class="search-arrow">${esMiembro ? '→ Entrar' : g.privado ? '🔒 Privado' : '+ Unirse'}</span>
+          </div>`;
+        }).join('');
         html += `</div>`;
       }
 
@@ -2121,6 +2141,17 @@
 
       $('search-resultados').innerHTML = `<p style="font-size:12px;color:var(--muted);margin-bottom:16px">${total} resultado${total !== 1 ? 's' : ''} para "<strong>${q}</strong>"</p>` + html;
     }
+
+    window.unirseYEntrar = async (id, nombre) => {
+      // Agregar al usuario como miembro y entrar
+      const { data: grupo } = await db.from('grupos').select('miembros').eq('id', id).single();
+      const miembros = grupo?.miembros || [];
+      if (!miembros.includes(usuario.email)) {
+        await db.from('grupos').update({ miembros: [...miembros, usuario.email] }).eq('id', id);
+      }
+      ir('pantalla-inicio');
+      entrarGrupo(id, nombre);
+    };
 
     window.abrirPreguntaDesdeSearch = (id) => {
       ir('pantalla-foro');
