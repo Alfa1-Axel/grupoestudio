@@ -15,6 +15,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
 </head>
 <body>
 
@@ -1203,21 +1205,56 @@
       if (badge) badge.textContent = '🟢 ' + onlineUsers.size + ' online';
     }
 
-    // ── NOTIFICACIONES ──────────────────────────────────────────
+    // ── NOTIFICACIONES FCM ──────────────────────────────────────
     let notifPermiso = false;
+    let fcmMessaging = null;
 
     async function pedirPermisoNotificaciones() {
       if (!('Notification' in window)) return;
-      if (Notification.permission === 'granted') { notifPermiso = true; return; }
-      if (Notification.permission !== 'denied') {
-        const result = await Notification.requestPermission();
-        notifPermiso = result === 'granted';
+      try {
+        // Iniciar Firebase Messaging
+        if (!fcmMessaging) {
+          const firebaseApp = firebase.initializeApp({
+            apiKey:            "AIzaSyDlo-aTge1YuwYnMFtDvR9Jv-tV8LD9Yz8",
+            authDomain:        "grupoestudio-notif.firebaseapp.com",
+            projectId:         "grupoestudio-notif",
+            storageBucket:     "grupoestudio-notif.firebasestorage.app",
+            messagingSenderId: "57965103786",
+            appId:             "1:57965103786:web:2f8b508c6eb69a0da71ed3"
+          });
+          fcmMessaging = firebase.messaging();
+        }
+
+        const VAPID_KEY = 'BEDQG96YxvsOC8o_mZwNwGdmL2fRfQfU7i9n3LQOuDp3hq_nWt5EtRshZl0MIhzJD5qmwERSR5hf3CHAgT5t6Ek';
+        const token = await fcmMessaging.getToken({ vapidKey: VAPID_KEY });
+
+        if (token) {
+          notifPermiso = true;
+          // Guardar token en perfil para poder enviarle notificaciones
+          await db.from('perfil_usuario').update({ fcm_token: token }).eq('id', usuario.id);
+          console.log('FCM token guardado');
+        }
+
+        // Notificaciones en primer plano
+        fcmMessaging.onMessage(payload => {
+          const { title, body } = payload.notification || {};
+          mostrarToast(title || 'GrupoEstudio', body || '');
+          actualizarBadgeNotif();
+        });
+
+      } catch(e) {
+        console.log('FCM no disponible:', e.message);
+        // Fallback a notificaciones básicas
+        if (Notification.permission !== 'denied') {
+          const result = await Notification.requestPermission();
+          notifPermiso = result === 'granted';
+        }
       }
     }
 
     function mostrarNotificacion(autor, texto) {
       if (!notifPermiso || document.visibilityState === 'visible') return;
-      new Notification('📚 ' + autor + ' en ' + grupoActual?.nombre, { body: texto });
+      new Notification('📚 ' + autor + ' en ' + (grupoActual?.nombre || 'GrupoEstudio'), { body: texto, icon: '/icons/icon-192.png' });
     }
 
     // ── ENTRAR AL GRUPO ─────────────────────────────────────────

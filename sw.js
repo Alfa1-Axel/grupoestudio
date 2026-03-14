@@ -1,23 +1,40 @@
-const CACHE_NAME = 'grupoestudio-v1';
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/style.css',
-  'https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap',
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
-];
+importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
-// Instalar y cachear assets estáticos
+firebase.initializeApp({
+  apiKey:            "AIzaSyDlo-aTge1YuwYnMFtDvR9Jv-tV8LD9Yz8",
+  authDomain:        "grupoestudio-notif.firebaseapp.com",
+  projectId:         "grupoestudio-notif",
+  storageBucket:     "grupoestudio-notif.firebasestorage.app",
+  messagingSenderId: "57965103786",
+  appId:             "1:57965103786:web:2f8b508c6eb69a0da71ed3"
+});
+
+const messaging = firebase.messaging();
+
+// Notificaciones en segundo plano
+messaging.onBackgroundMessage(payload => {
+  const { title, body } = payload.notification || {};
+  self.registration.showNotification(title || 'GrupoEstudio', {
+    body:    body || '',
+    icon:    '/icons/icon-192.png',
+    badge:   '/icons/icon-192.png',
+    vibrate: [200, 100, 200],
+    data:    payload.data
+  });
+});
+
+// Cache para PWA
+const CACHE_NAME = 'grupoestudio-v2';
+const STATIC_ASSETS = ['/', '/index.html', '/style.css'];
+
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(STATIC_ASSETS).catch(() => {});
-    })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS).catch(() => {}))
   );
   self.skipWaiting();
 });
 
-// Activar y limpiar caches viejos
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
@@ -27,16 +44,11 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Estrategia: network first, fallback a cache
 self.addEventListener('fetch', event => {
-  // Solo cachear GET requests del mismo origen
   if (event.request.method !== 'GET') return;
-  if (!event.request.url.startsWith('http')) return;
-
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Guardar en cache si es válido
         if (response && response.status === 200) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
@@ -47,27 +59,11 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// Notificaciones push
-self.addEventListener('push', event => {
-  if (!event.data) return;
-  const data = event.data.json();
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'GrupoEstudio', {
-      body:    data.body  || '',
-      icon:    '/icons/icon-192.png',
-      badge:   '/icons/icon-192.png',
-      vibrate: [200, 100, 200],
-      data:    data
-    })
-  );
-});
-
-// Click en notificación
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then(clientList => {
-      if (clientList.length > 0) return clientList[0].focus();
+    clients.matchAll({ type: 'window' }).then(list => {
+      if (list.length > 0) return list[0].focus();
       return clients.openWindow('/');
     })
   );
