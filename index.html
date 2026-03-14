@@ -78,6 +78,7 @@
       <div class="topbar-brand"><div class="brand-icon"><img src="/icons/icon-192.png" alt="logo" /></div> GrupoEstudio</div>
       <div class="topbar-right">
         <button class="btn btn-ghost btn-sm" id="btn-buscar">🔍</button>
+        <button class="btn btn-ghost btn-sm" id="btn-tema" title="Cambiar tema">🌙</button>
         <button class="btn-notif" id="btn-notificaciones">
           🔔
           <span id="notif-badge" class="badge-noread oculto">0</span>
@@ -159,6 +160,7 @@
       <div class="topbar-back" id="btn-volver">← Volver</div>
       <span class="topbar-titulo" id="grupo-titulo"></span>
       <div class="topbar-right-grupo">
+        <button class="btn-foto-chat" id="btn-compartir-grupo" title="Compartir grupo" style="font-size:14px">🔗</button>
         <span id="online-badge" class="online-badge">🟢 1 online</span>
         <div class="user-chip">
           <div class="avatar-sm" id="grupo-avatar"></div>
@@ -177,14 +179,48 @@
 
     <!-- CHAT -->
     <div class="tab-content" id="tab-chat">
+      <div id="mensaje-fijado-banner" class="oculto"></div>
       <div class="mensajes" id="mensajes"></div>
       <div class="chat-input-wrap">
         <label class="btn-foto-chat" title="Enviar foto">
           📷
           <input type="file" id="chat-foto-input" accept="image/*" style="display:none" />
         </label>
+        <button class="btn-foto-chat" id="btn-encuesta" title="Crear encuesta">📊</button>
         <input type="text" id="msg-input" placeholder="Escribí un mensaje..." />
         <button class="btn" id="btn-enviar">Enviar</button>
+      </div>
+    </div>
+
+    <!-- MODAL ENCUESTA -->
+    <div class="modal-overlay oculto" id="modal-encuesta">
+      <div class="modal-card">
+        <h3 style="font-family:var(--fhead);margin-bottom:16px">📊 Nueva encuesta</h3>
+        <div class="input-group">
+          <label>Pregunta</label>
+          <input type="text" id="encuesta-pregunta" placeholder="¿Cuál es tu pregunta?" />
+        </div>
+        <div class="input-group" style="margin-top:12px">
+          <label>Opciones (una por línea, mínimo 2)</label>
+          <textarea id="encuesta-opciones" rows="4" placeholder="Opción A&#10;Opción B&#10;Opción C"></textarea>
+        </div>
+        <div class="form-row" style="margin-top:16px">
+          <button class="btn btn-sm" id="btn-crear-encuesta">Publicar encuesta</button>
+          <button class="btn btn-ghost btn-sm" id="btn-cancelar-encuesta">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL COMPARTIR GRUPO -->
+    <div class="modal-overlay oculto" id="modal-compartir">
+      <div class="modal-card">
+        <h3 style="font-family:var(--fhead);margin-bottom:16px">🔗 Compartir grupo</h3>
+        <p style="font-size:13px;color:var(--muted2);margin-bottom:12px">Compartí este link para invitar personas al grupo</p>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="compartir-link" readonly style="flex:1;font-size:12px" />
+          <button class="btn btn-sm" id="btn-copiar-link">Copiar</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btn-cerrar-compartir" style="width:100%;margin-top:12px">Cerrar</button>
       </div>
     </div>
 
@@ -1071,6 +1107,7 @@
         window._miEmail = session.user.email.toLowerCase().trim();
         await cargarInicio();
         iniciarNotificaciones();
+        procesarInvitacion();
         // Crear/cargar perfil en background
         cargarPerfil();
       } else {
@@ -1143,7 +1180,10 @@
             <h3>${g.privado ? '🔒' : '📘'} ${g.nombre}</h3>
             <p>${g.materia} · Creado por ${g.creador}</p>
           </div>
-          <span class="tag">Entrar →</span>
+          <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+            ${g.creador_email === usuario.email ? `<button class="btn-eliminar-grupo" data-id="${g.id}" data-nombre="${g.nombre}" onclick="event.stopPropagation();eliminarGrupo('${g.id}','${g.nombre}')">🗑️</button>` : ''}
+            <span class="tag">Entrar →</span>
+          </div>
         </div>`).join('');
 
       document.querySelectorAll('.grupo-card').forEach(card => {
@@ -1238,6 +1278,7 @@
       iniciarPresencia(id);
       activarTab('chat');
       escucharMensajes();
+      cargarMensajeFijado();
     }
 
     $('btn-volver').onclick = () => {
@@ -1337,15 +1378,62 @@
       const hora = m.hora
         ? new Date(m.hora).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
         : '';
+
+      // Encuesta
+      if (m.tipo === 'encuesta' && m.opciones) {
+        const votos = m.votos || {};
+        const totalVotos = Object.values(votos).reduce((a, b) => a + (Array.isArray(b) ? b.length : 0), 0);
+        const opcionesHtml = m.opciones.map(op => {
+          const cantVotos = Array.isArray(votos[op]) ? votos[op].length : 0;
+          const pct = totalVotos > 0 ? Math.round((cantVotos / totalVotos) * 100) : 0;
+          const yoVote = Array.isArray(votos[op]) && votos[op].includes(miEmail);
+          return `<div class="encuesta-opcion ${yoVote ? 'votada' : ''}" onclick="votarEncuesta('${m.id}','${op}')">
+            <div class="encuesta-barra" style="width:${pct}%"></div>
+            <span class="encuesta-texto">${op}</span>
+            <span class="encuesta-pct">${pct}%</span>
+          </div>`;
+        }).join('');
+        return `<div class="mensaje ${esPropio ? 'propio' : 'otro'} mensaje-encuesta">
+          ${!esPropio ? `<div class="autor">${m.autor}</div>` : ''}
+          <div class="encuesta-wrap">
+            <div class="encuesta-titulo">📊 ${m.texto}</div>
+            ${opcionesHtml}
+            <div class="hora" style="margin-top:6px">${hora} · ${totalVotos} voto${totalVotos !== 1 ? 's' : ''}</div>
+          </div>
+        </div>`;
+      }
+
       const contenido = m.imagen_url
         ? `<img src="${m.imagen_url}" class="msg-img" onclick="window.open('${m.imagen_url}','_blank')" />`
         : `<div class="texto">${m.texto}</div>`;
-      return `<div class="mensaje ${esPropio ? 'propio' : 'otro'}">
+
+      const esDuenioGrupo = grupoActual && usuario;
+      const menuFijar = esDuenioGrupo ? `<div class="msg-menu" onclick="toggleFijar('${m.id}',${!!m.fijado})">
+        ${m.fijado ? '📌 Desfijar' : '📌 Fijar'}
+      </div>` : '';
+
+      return `<div class="mensaje ${esPropio ? 'propio' : 'otro'} ${m.fijado ? 'fijado' : ''}" oncontextmenu="mostrarMenuMensaje(event,'${m.id}',${!!m.fijado});return false;">
         ${!esPropio ? `<div class="autor">${m.autor}</div>` : ''}
         ${contenido}
-        <div class="hora">${hora}</div>
+        <div class="hora">${hora}${m.fijado ? ' 📌' : ''}</div>
       </div>`;
     }
+
+    window.mostrarMenuMensaje = (e, id, fijado) => {
+      e.preventDefault();
+      // Simple: preguntar si fijar/desfijar
+      const accion = fijado ? 'Desfijar' : 'Fijar';
+      if (confirm(accion + ' este mensaje?')) toggleFijar(id, fijado);
+    };
+
+    window.toggleFijar = async (id, estaFijado) => {
+      // Desfijar todos primero
+      await db.from('mensajes').update({ fijado: false }).eq('grupo_id', grupoActual.id).eq('fijado', true);
+      // Fijar el nuevo si no estaba fijado
+      if (!estaFijado) await db.from('mensajes').update({ fijado: true }).eq('id', id);
+      cargarMensajeFijado();
+      escucharMensajes();
+    };
 
     $('btn-enviar').onclick = enviarMensaje;
     $('msg-input').addEventListener('keypress', e => { if (e.key === 'Enter') enviarMensaje(); });
@@ -1565,6 +1653,10 @@
 
       if (miembros.length === 0) { vacio('lista-miembros', '👥', 'Sin miembros.'); return; }
 
+      // Ver si soy el creador del grupo
+      const { data: grupoInfo } = await db.from('grupos').select('creador_email').eq('id', grupoActual.id).single();
+      const soCreador = grupoInfo?.creador_email === usuario.email;
+
       $('lista-miembros').innerHTML = miembros.map(email => {
         const isOnline = onlineUsers.has(email);
         const esYo = email === usuario.email;
@@ -1578,7 +1670,11 @@
             ${esYo ? '<span class="badge-vos">Vos</span>' : ''}
             ${isOnline ? '<span class="badge-online">online</span>' : ''}
           </div>
-          ${!esYo ? `<button class="btn-dm" data-email="${email}" data-nombre="${email.split('@')[0]}">💬</button>` : ''}
+          <div style="display:flex;gap:6px">
+            ${!esYo ? `<button class="btn-dm" data-email="${email}" data-nombre="${email.split('@')[0]}">💬</button>` : ''}
+            ${soCreador && !esYo ? `<button class="btn-eliminar-miembro" onclick="eliminarMiembro('${email}')">🚫</button>` : ''}
+            ${!soCreador && esYo ? `<button class="btn-ghost btn-sm" style="font-size:11px;padding:4px 8px;border-radius:8px;background:transparent;border:1px solid var(--border2);color:var(--muted2);cursor:pointer" onclick="salirGrupo()">Salir</button>` : ''}
+          </div>
         </div>`;
       }).join('');
 
@@ -2297,6 +2393,146 @@
       mostrarDetalleForo();
       abrirPregunta(id);
     };
+
+    // ── ELIMINAR GRUPO / MIEMBROS ────────────────────────────────
+    window.eliminarGrupo = async (id, nombre) => {
+      if (!confirm(`¿Eliminár el grupo "${nombre}"? Esta acción no se puede deshacer.`)) return;
+      await db.from('mensajes').delete().eq('grupo_id', id);
+      await db.from('archivos').delete().eq('grupo_id', id);
+      await db.from('eventos').delete().eq('grupo_id', id);
+      await db.from('grupos').delete().eq('id', id);
+      cargarGrupos();
+    };
+
+    window.eliminarMiembro = async (email) => {
+      if (!confirm(`¿Eliminar a ${email} del grupo?`)) return;
+      const { data: grupo } = await db.from('grupos').select('miembros').eq('id', grupoActual.id).single();
+      const miembros = (grupo?.miembros || []).filter(e => e !== email);
+      await db.from('grupos').update({ miembros }).eq('id', grupoActual.id);
+      cargarMiembros();
+    };
+
+    window.salirGrupo = async () => {
+      if (!confirm('¿Salir del grupo?')) return;
+      const { data: grupo } = await db.from('grupos').select('miembros').eq('id', grupoActual.id).single();
+      const miembros = (grupo?.miembros || []).filter(e => e !== usuario.email);
+      await db.from('grupos').update({ miembros }).eq('id', grupoActual.id);
+      if (chatSub)    chatSub.unsubscribe();
+      if (presenceSub) presenceSub.unsubscribe();
+      grupoActual = null;
+      ir('pantalla-inicio');
+      cargarGrupos();
+    };
+
+    // ── MODO CLARO/OSCURO ────────────────────────────────────────
+    let temaOscuro = localStorage.getItem('tema') !== 'claro';
+
+    function aplicarTema() {
+      document.documentElement.setAttribute('data-tema', temaOscuro ? 'oscuro' : 'claro');
+      $('btn-tema').textContent = temaOscuro ? '🌙' : '☀️';
+      localStorage.setItem('tema', temaOscuro ? 'oscuro' : 'claro');
+    }
+
+    $('btn-tema').onclick = () => { temaOscuro = !temaOscuro; aplicarTema(); };
+    aplicarTema();
+
+    // ── COMPARTIR GRUPO ───────────────────────────────────────────
+    $('btn-compartir-grupo').onclick = () => {
+      const link = `${location.origin}?unirse=${grupoActual.id}`;
+      $('compartir-link').value = link;
+      $('modal-compartir').classList.remove('oculto');
+    };
+
+    $('btn-copiar-link').onclick = () => {
+      navigator.clipboard.writeText($('compartir-link').value).then(() => {
+        $('btn-copiar-link').textContent = '✅';
+        setTimeout(() => $('btn-copiar-link').textContent = 'Copiar', 2000);
+      });
+    };
+
+    $('btn-cerrar-compartir').onclick = () => $('modal-compartir').classList.add('oculto');
+
+    // Manejar link de invitación al cargar
+    const urlParams = new URLSearchParams(location.search);
+    const grupoInvitacion = urlParams.get('unirse');
+    if (grupoInvitacion) {
+      // Guardar para procesar después del login
+      localStorage.setItem('unirse_grupo', grupoInvitacion);
+      history.replaceState({}, '', '/');
+    }
+
+    async function procesarInvitacion() {
+      const gId = localStorage.getItem('unirse_grupo');
+      if (!gId || !usuario) return;
+      localStorage.removeItem('unirse_grupo');
+      const { data: grupo } = await db.from('grupos').select('*').eq('id', gId).single();
+      if (!grupo) return;
+      const miembros = grupo.miembros || [];
+      if (!miembros.includes(usuario.email)) {
+        await db.from('grupos').update({ miembros: [...miembros, usuario.email] }).eq('id', gId);
+      }
+      entrarGrupo(gId, grupo.nombre);
+    }
+
+    // ── MENSAJES FIJADOS ─────────────────────────────────────────
+    async function cargarMensajeFijado() {
+      const { data } = await db.from('mensajes')
+        .select('*').eq('grupo_id', grupoActual.id).eq('fijado', true)
+        .order('hora', { ascending: false }).limit(1).single();
+
+      const banner = $('mensaje-fijado-banner');
+      if (data) {
+        banner.classList.remove('oculto');
+        banner.innerHTML = `
+          <div class="banner-fijado">
+            <span>📌</span>
+            <span class="banner-texto">${data.imagen_url ? '📷 Imagen' : data.texto}</span>
+            <span class="banner-autor">— ${data.autor}</span>
+          </div>`;
+      } else {
+        banner.classList.add('oculto');
+      }
+    }
+
+    // ── ENCUESTAS ────────────────────────────────────────────────
+    $('btn-encuesta').onclick = () => $('modal-encuesta').classList.remove('oculto');
+    $('btn-cancelar-encuesta').onclick = () => {
+      $('modal-encuesta').classList.add('oculto');
+      $('encuesta-pregunta').value = '';
+      $('encuesta-opciones').value = '';
+    };
+
+    $('btn-crear-encuesta').onclick = async () => {
+      const pregunta = $('encuesta-pregunta').value.trim();
+      const opcionesRaw = $('encuesta-opciones').value.trim();
+      if (!pregunta) return alert('Escribí una pregunta');
+      const opciones = opcionesRaw.split('\n').map(o => o.trim()).filter(o => o.length > 0);
+      if (opciones.length < 2) return alert('Necesitás al menos 2 opciones');
+
+      await db.from('mensajes').insert({
+        grupo_id: grupoActual.id,
+        autor:    usuario.nombre,
+        email:    usuario.email,
+        texto:    pregunta,
+        tipo:     'encuesta',
+        opciones,
+        votos:    {}
+      });
+      $('btn-cancelar-encuesta').click();
+    };
+
+    async function votarEncuesta(msgId, opcion) {
+      const { data: msg } = await db.from('mensajes').select('votos').eq('id', msgId).single();
+      const votos = msg?.votos || {};
+      // Remover voto anterior del usuario
+      Object.keys(votos).forEach(op => {
+        if (Array.isArray(votos[op])) votos[op] = votos[op].filter(e => e !== usuario.email);
+      });
+      // Agregar nuevo voto
+      if (!votos[opcion]) votos[opcion] = [];
+      votos[opcion].push(usuario.email);
+      await db.from('mensajes').update({ votos }).eq('id', msgId);
+    }
 
     // ── RANKING ─────────────────────────────────────────────────
     $('btn-ir-ranking').onclick   = () => { ir('pantalla-ranking'); cargarRanking(); };

@@ -1646,3 +1646,114 @@ input:focus, select:focus, textarea:focus {
   .chat-input-wrap { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
   #tab-chat { bottom: calc(62px + env(safe-area-inset-bottom)); }
 }
+
+/* ════════════════════════════════════════
+   MODO CLARO
+════════════════════════════════════════ */
+[data-tema="claro"] {
+  --bg:       #f0f4ff;
+  --surface:  #ffffff;
+  --surface2: #e8edf8;
+  --border:   #d0d8ee;
+  --border2:  #b8c4e0;
+  --text:     #0f1624;
+  --muted:    #7a8aa8;
+  --muted2:   #556080;
+  --accent:   #3b7ef5;
+  --accent2:  #6b5af5;
+  --green:    #16a87e;
+  --red:      #e04444;
+}
+[data-tema="claro"] body { background: var(--bg); }
+[data-tema="claro"] .topbar { background: rgba(240,244,255,0.95); }
+[data-tema="claro"] .blob-1 { background: radial-gradient(circle, rgba(59,126,245,0.08), transparent 70%); }
+[data-tema="claro"] .blob-2 { background: radial-gradient(circle, rgba(107,90,245,0.06), transparent 70%); }
+[data-tema="claro"] .mensaje.otro { background: #e8edf8; border-color: #d0d8ee; }
+[data-tema="claro"] .nav-mobile { background: rgba(240,244,255,0.98); }
+[data-tema="claro"] .auth-card { box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+
+/* ════════════════════════════════════════
+   ENCUESTAS
+════════════════════════════════════════ */
+.mensaje-encuesta { max-width: 85% !important; }
+.encuesta-wrap { min-width: 200px; }
+.encuesta-titulo {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+.encuesta-opcion {
+  position: relative;
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--surface2);
+}
+.encuesta-opcion.votada { border-color: var(--accent); }
+.encuesta-barra {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  background: rgba(79,142,247,0.15);
+  transition: width 0.4s ease;
+  border-radius: 8px 0 0 8px;
+}
+.encuesta-texto { font-size: 13px; position: relative; z-index: 1; }
+.encuesta-pct   { font-size: 12px; color: var(--accent); font-weight: 600; position: relative; z-index: 1; flex-shrink: 0; }
+
+/* ════════════════════════════════════════
+   MENSAJES FIJADOS
+════════════════════════════════════════ */
+.banner-fijado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(79,142,247,0.08);
+  border-bottom: 1px solid rgba(79,142,247,0.2);
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.banner-texto { flex: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.banner-autor { color: var(--muted); font-size: 12px; flex-shrink: 0; }
+.mensaje.fijado { border: 1px solid rgba(79,142,247,0.3) !important; }
+
+@media (max-width: 768px) {
+  .encuesta-opcion { padding: 7px 10px; }
+  .encuesta-titulo { font-size: 13px; }
+}
+
+/* Botones eliminar */
+.btn-eliminar-grupo {
+  background: transparent;
+  border: 1px solid rgba(247,95,95,0.3);
+  border-radius: 8px;
+  color: var(--red);
+  padding: 5px 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.btn-eliminar-grupo:hover { background: rgba(247,95,95,0.1); }
+
+.btn-eliminar-miembro {
+  background: transparent;
+  border: 1px solid rgba(247,95,95,0.3);
+  border-radius: 8px;
+  color: var(--red);
+  padding: 4px 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.btn-eliminar-miembro:hover { background: rgba(247,95,95,0.1); }
