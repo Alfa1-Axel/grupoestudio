@@ -444,24 +444,22 @@ select option { background: var(--surface2); }
 #tab-chat {
   position: fixed;
   top: 110px;
-  left: 0; right: 0; bottom: 0;
-  height: calc(100dvh - 110px);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
-/* El botón scroll flota sobre el contenedor */
-#tab-chat .btn-scroll-abajo {
-  position: fixed;
-  bottom: 80px;
-  right: 20px;
-}
 #mensaje-fijado-banner {
+  width: 100%;
   flex-shrink: 0;
   z-index: 10;
 }
 .mensajes {
   flex: 1;
+  width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 16px 20px;
@@ -470,6 +468,17 @@ select option { background: var(--surface2); }
   gap: 6px;
   scrollbar-width: thin;
   scrollbar-color: var(--border2) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+.chat-input-wrap {
+  width: 100%;
+  flex-shrink: 0;
+}
+/* El botón scroll flota sobre el contenedor */
+.btn-scroll-abajo {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
 }
 .mensaje {
   display: block;
