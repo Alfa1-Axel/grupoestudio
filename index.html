@@ -69,6 +69,7 @@
     <div class="topbar">
       <div class="topbar-brand"><div class="brand-icon">📚</div> GrupoEstudio</div>
       <div class="topbar-right">
+        <button class="btn btn-ghost btn-sm" id="btn-buscar">🔍</button>
         <button class="btn btn-ghost btn-sm" id="btn-ir-foro">💬 Foro</button>
         <button class="btn btn-ghost btn-sm" id="btn-ir-clases">🎓 Clases</button>
         <button class="btn btn-ghost btn-sm" id="btn-ir-ranking">🏆 Ranking</button>
@@ -86,6 +87,9 @@
     <nav class="nav-mobile" style="display:none">
       <button class="nav-mobile-btn activo" id="nav-grupos">
         <span>📚</span><span>Grupos</span>
+      </button>
+      <button class="nav-mobile-btn" id="nav-buscar">
+        <span>🔍</span><span>Buscar</span>
       </button>
       <button class="nav-mobile-btn" id="nav-foro">
         <span>💬</span><span>Foro</span>
@@ -393,6 +397,24 @@
 
       <button class="btn" id="btn-guardar-perfil" style="width:100%;margin-top:16px">💾 Guardar cambios</button>
 
+    </div>
+  </div>
+
+  <!-- BÚSQUEDA GLOBAL -->
+  <div class="pantalla oculto" id="pantalla-busqueda">
+    <div class="topbar">
+      <div class="topbar-back" id="btn-volver-busqueda">← Volver</div>
+      <div class="search-topbar-wrap">
+        <input type="text" id="search-input" placeholder="Buscar grupos, preguntas, tutores, usuarios..." autofocus />
+      </div>
+    </div>
+    <div class="page-wrap">
+      <div id="search-resultados">
+        <div class="search-placeholder">
+          <div style="font-size:48px;margin-bottom:12px">🔍</div>
+          <p style="color:var(--muted2)">Escribí algo para buscar</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1989,6 +2011,125 @@
       if (t) abrirDM(t.email, t.nombre);
     };
 
+    // ── BÚSQUEDA GLOBAL ──────────────────────────────────────────
+    function abrirBusqueda() {
+      ir('pantalla-busqueda');
+      setTimeout(() => $('search-input').focus(), 100);
+    }
+
+    $('btn-buscar').onclick         = abrirBusqueda;
+    $('btn-volver-busqueda').onclick = () => ir('pantalla-inicio');
+
+    let searchTimeout = null;
+    $('search-input').addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      const q = $('search-input').value.trim();
+      if (!q) {
+        $('search-resultados').innerHTML = `<div class="search-placeholder"><div style="font-size:48px;margin-bottom:12px">🔍</div><p style="color:var(--muted2)">Escribí algo para buscar</p></div>`;
+        return;
+      }
+      $('search-resultados').innerHTML = '<p class="cargando">Buscando...</p>';
+      searchTimeout = setTimeout(() => buscar(q), 350);
+    });
+
+    async function buscar(q) {
+      const term = q.toLowerCase();
+      const resultados = { grupos: [], preguntas: [], tutores: [], usuarios: [] };
+
+      const [rGrupos, rPreguntas, rTutores, rUsuarios] = await Promise.all([
+        db.from('grupos').select('id,nombre,materia,creador').ilike('nombre', `%${q}%`).limit(5),
+        db.from('foro_preguntas').select('id,titulo,categoria,autor').or(`titulo.ilike.%${q}%,descripcion.ilike.%${q}%`).limit(5),
+        db.from('tutores').select('id,nombre,materia,precio_hora').eq('disponible', true).or(`nombre.ilike.%${q}%,materia.ilike.%${q}%`).limit(5),
+        db.from('perfil_usuario').select('id,nombre,email,avatar_url').ilike('nombre', `%${q}%`).limit(5)
+      ]);
+
+      resultados.grupos    = rGrupos.data    || [];
+      resultados.preguntas = rPreguntas.data || [];
+      resultados.tutores   = rTutores.data   || [];
+      resultados.usuarios  = rUsuarios.data  || [];
+
+      const total = Object.values(resultados).reduce((a, b) => a + b.length, 0);
+
+      if (total === 0) {
+        $('search-resultados').innerHTML = `<div class="search-placeholder"><div style="font-size:48px;margin-bottom:12px">😕</div><p style="color:var(--muted2)">No se encontraron resultados para "<strong>${q}</strong>"</p></div>`;
+        return;
+      }
+
+      let html = '';
+
+      if (resultados.grupos.length) {
+        html += `<div class="search-section"><div class="search-section-title">📚 Grupos</div>`;
+        html += resultados.grupos.map(g => `
+          <div class="search-item" onclick="entrarGrupo('${g.id}','${g.nombre}')">
+            <div class="search-icon">📘</div>
+            <div class="search-datos">
+              <div class="search-nombre">${g.nombre}</div>
+              <div class="search-sub">${g.materia} · ${g.creador}</div>
+            </div>
+            <span class="search-arrow">→</span>
+          </div>`).join('');
+        html += `</div>`;
+      }
+
+      if (resultados.preguntas.length) {
+        html += `<div class="search-section"><div class="search-section-title">💬 Preguntas del foro</div>`;
+        html += resultados.preguntas.map(p => `
+          <div class="search-item" onclick="abrirPreguntaDesdeSearch('${p.id}')">
+            <div class="search-icon">❓</div>
+            <div class="search-datos">
+              <div class="search-nombre">${p.titulo}</div>
+              <div class="search-sub">${p.categoria} · ${p.autor}</div>
+            </div>
+            <span class="search-arrow">→</span>
+          </div>`).join('');
+        html += `</div>`;
+      }
+
+      if (resultados.tutores.length) {
+        html += `<div class="search-section"><div class="search-section-title">🎓 Tutores</div>`;
+        html += resultados.tutores.map(t => `
+          <div class="search-item" onclick="irClases()">
+            <div class="search-icon">👨‍🏫</div>
+            <div class="search-datos">
+              <div class="search-nombre">${t.nombre}</div>
+              <div class="search-sub">${t.materia} · ${t.precio_hora > 0 ? '$'+t.precio_hora+'/h' : 'Gratis'}</div>
+            </div>
+            <span class="search-arrow">→</span>
+          </div>`).join('');
+        html += `</div>`;
+      }
+
+      if (resultados.usuarios.length) {
+        html += `<div class="search-section"><div class="search-section-title">👤 Usuarios</div>`;
+        html += resultados.usuarios.map(u => {
+          const avatar = u.avatar_url
+            ? `<img src="${u.avatar_url}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" />`
+            : `<div class="search-icon">${(u.nombre||'?')[0].toUpperCase()}</div>`;
+          const esMio = u.email === usuario.email;
+          return `
+            <div class="search-item" ${esMio ? `onclick="abrirPerfil()"` : `onclick="abrirDM('${u.email}','${u.nombre}')"`}>
+              ${avatar}
+              <div class="search-datos">
+                <div class="search-nombre">${u.nombre} ${esMio ? '<span class="badge-vos">Vos</span>' : ''}</div>
+                <div class="search-sub">${esMio ? 'Ver mi perfil' : '💬 Enviar mensaje'}</div>
+              </div>
+              <span class="search-arrow">→</span>
+            </div>`;
+        }).join('');
+        html += `</div>`;
+      }
+
+      $('search-resultados').innerHTML = `<p style="font-size:12px;color:var(--muted);margin-bottom:16px">${total} resultado${total !== 1 ? 's' : ''} para "<strong>${q}</strong>"</p>` + html;
+    }
+
+    window.abrirPreguntaDesdeSearch = (id) => {
+      ir('pantalla-foro');
+      $('foro-avatar').textContent = usuario.nombre[0].toUpperCase();
+      $('foro-nombre').textContent = usuario.nombre;
+      mostrarDetalleForo();
+      abrirPregunta(id);
+    };
+
     // ── RANKING ─────────────────────────────────────────────────
     $('btn-ir-ranking').onclick   = () => { ir('pantalla-ranking'); cargarRanking(); };
 
@@ -1998,6 +2139,7 @@
       if (!nav) return;
 
       $('nav-grupos').onclick  = () => { ir('pantalla-inicio'); setNavActivo('nav-grupos'); };
+      $('nav-buscar').onclick  = () => { abrirBusqueda(); setNavActivo('nav-buscar'); };
       $('nav-foro').onclick    = () => { ir('pantalla-foro');   $('foro-avatar').textContent = usuario.nombre[0].toUpperCase(); $('foro-nombre').textContent = usuario.nombre; mostrarListaForo(); cargarPreguntas(); setNavActivo('nav-foro'); };
       $('nav-clases').onclick  = () => { irClases(); setNavActivo('nav-clases'); };
       $('nav-ranking').onclick = () => { ir('pantalla-ranking'); cargarRanking(); setNavActivo('nav-ranking'); };
