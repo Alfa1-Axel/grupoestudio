@@ -1454,6 +1454,29 @@
       escucharMensajes();
     };
 
+    // ── TECLADO MÓVIL ────────────────────────────────────────────
+    // Usar Visual Viewport API para detectar el teclado
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        const chat = $('tab-chat');
+        if (!chat || chat.classList.contains('oculto')) return;
+        const altura = window.visualViewport.height;
+        const offset = window.visualViewport.offsetTop;
+        chat.style.height = (altura - 110 + offset) + 'px';
+        // Scroll al fondo cuando aparece el teclado
+        const mensajes = $('mensajes');
+        if (mensajes) setTimeout(() => { mensajes.scrollTop = mensajes.scrollHeight; }, 50);
+      });
+
+      window.visualViewport.addEventListener('scroll', () => {
+        const chat = $('tab-chat');
+        if (!chat || chat.classList.contains('oculto')) return;
+        const altura = window.visualViewport.height;
+        const offset = window.visualViewport.offsetTop;
+        chat.style.height = (altura - 110 + offset) + 'px';
+      });
+    }
+
     // ── SCROLL TO BOTTOM BUTTON ─────────────────────────────────
     const mensajesEl = $('mensajes');
     mensajesEl.addEventListener('scroll', () => {
