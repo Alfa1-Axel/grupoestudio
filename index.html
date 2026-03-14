@@ -70,6 +70,10 @@
       <div class="topbar-brand"><div class="brand-icon">📚</div> GrupoEstudio</div>
       <div class="topbar-right">
         <button class="btn btn-ghost btn-sm" id="btn-buscar">🔍</button>
+        <button class="btn-notif" id="btn-notificaciones">
+          🔔
+          <span id="notif-badge" class="badge-noread oculto">0</span>
+        </button>
         <button class="btn btn-ghost btn-sm" id="btn-ir-foro">💬 Foro</button>
         <button class="btn btn-ghost btn-sm" id="btn-ir-clases">🎓 Clases</button>
         <button class="btn btn-ghost btn-sm" id="btn-ir-ranking">🏆 Ranking</button>
@@ -409,6 +413,16 @@
 
     </div>
   </div>
+
+  <!-- PANEL NOTIFICACIONES -->
+  <div id="notif-panel" class="notif-panel oculto">
+    <div class="notif-header">
+      <span>🔔 Notificaciones</span>
+      <button id="btn-marcar-leidas" class="btn btn-ghost btn-sm">Marcar todas leídas</button>
+    </div>
+    <div id="notif-lista"><p class="cargando">Cargando...</p></div>
+  </div>
+  <div id="notif-overlay" class="notif-overlay oculto"></div>
 
   <!-- BÚSQUEDA GLOBAL -->
   <div class="pantalla oculto" id="pantalla-busqueda">
@@ -1048,6 +1062,7 @@
         usuario.email  = session.user.email;
         window._miEmail = session.user.email.toLowerCase().trim();
         await cargarInicio();
+        iniciarNotificaciones();
         // Crear/cargar perfil en background
         cargarPerfil();
       } else {
@@ -1949,6 +1964,7 @@
         alumno_nombre: usuario.nombre,
         mensaje:       msg
       });
+      crearNotificacion(tutorSolicitud.email, 'solicitud', '🎓 Nueva solicitud de clase', usuario.nombre + ' quiere tomar clases de ' + tutorSolicitud.materia, tutorSolicitud.id);
       $('modal-solicitud').classList.add('oculto');
       alert('✅ Solicitud enviada');
     };
@@ -2021,6 +2037,116 @@
     window.abrirDMTutor = async (tutorId) => {
       const { data: t } = await db.from('tutores').select('email, nombre').eq('id', tutorId).single();
       if (t) abrirDM(t.email, t.nombre);
+    };
+
+    // ── NOTIFICACIONES ───────────────────────────────────────────
+    let notifSub = null;
+
+    function iniciarNotificaciones() {
+      // Escuchar notificaciones en tiempo real
+      notifSub = db.channel('notif-' + usuario.email)
+        .on('postgres_changes', {
+          event:  'INSERT',
+          schema: 'public',
+          table:  'notificaciones',
+          filter: `usuario_email=eq.${usuario.email}`
+        }, payload => {
+          const n = payload.new;
+          actualizarBadgeNotif();
+          // Notificación del navegador si está en segundo plano
+          if (notifPermiso && document.visibilityState !== 'visible') {
+            new Notification(n.titulo, { body: n.mensaje });
+          }
+          // Toast dentro de la app
+          mostrarToast(n.titulo, n.mensaje);
+        })
+        .subscribe();
+      actualizarBadgeNotif();
+    }
+
+    async function actualizarBadgeNotif() {
+      const { count } = await db.from('notificaciones')
+        .select('*', { count: 'exact', head: true })
+        .eq('usuario_email', usuario.email)
+        .eq('leida', false);
+      const badge = $('notif-badge');
+      if (count > 0) { badge.textContent = count > 9 ? '9+' : count; badge.classList.remove('oculto'); }
+      else badge.classList.add('oculto');
+    }
+
+    async function crearNotificacion(emailDestino, tipo, titulo, mensaje, linkId = '') {
+      if (emailDestino === usuario.email) return; // no notificarse a uno mismo
+      await db.from('notificaciones').insert({ usuario_email: emailDestino, tipo, titulo, mensaje, link_id: linkId });
+    }
+
+    function mostrarToast(titulo, mensaje) {
+      const toast = document.createElement('div');
+      toast.className = 'toast-notif';
+      toast.innerHTML = `<strong>${titulo}</strong><p>${mensaje}</p>`;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.classList.add('visible'), 10);
+      setTimeout(() => { toast.classList.remove('visible'); setTimeout(() => toast.remove(), 300); }, 4000);
+    }
+
+    // Abrir/cerrar panel
+    $('btn-notificaciones').onclick = async (e) => {
+      e.stopPropagation();
+      const panel = $('notif-panel');
+      const overlay = $('notif-overlay');
+      if (panel.classList.contains('oculto')) {
+        panel.classList.remove('oculto');
+        overlay.classList.remove('oculto');
+        cargarNotificaciones();
+      } else {
+        panel.classList.add('oculto');
+        overlay.classList.add('oculto');
+      }
+    };
+
+    $('notif-overlay').onclick = () => {
+      $('notif-panel').classList.add('oculto');
+      $('notif-overlay').classList.add('oculto');
+    };
+
+    $('btn-marcar-leidas').onclick = async () => {
+      await db.from('notificaciones').update({ leida: true }).eq('usuario_email', usuario.email).eq('leida', false);
+      actualizarBadgeNotif();
+      cargarNotificaciones();
+    };
+
+    async function cargarNotificaciones() {
+      const { data } = await db.from('notificaciones')
+        .select('*')
+        .eq('usuario_email', usuario.email)
+        .order('creado_el', { ascending: false })
+        .limit(30);
+
+      if (!data || data.length === 0) {
+        $('notif-lista').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted2)">🔔 No hay notificaciones</div>';
+        return;
+      }
+
+      const iconos = { mensaje: '💬', dm: '✉️', foro: '💬', solicitud: '🎓', sistema: '📢' };
+      $('notif-lista').innerHTML = data.map(n => `
+        <div class="notif-item ${n.leida ? '' : 'no-leida'}" onclick="marcarLeidaYNavegar('${n.id}','${n.tipo}','${n.link_id}')">
+          <div class="notif-icon">${iconos[n.tipo] || '🔔'}</div>
+          <div class="notif-datos">
+            <div class="notif-titulo">${n.titulo}</div>
+            <div class="notif-msg">${n.mensaje}</div>
+            <div class="notif-hora">${new Date(n.creado_el).toLocaleString('es-AR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}</div>
+          </div>
+          ${!n.leida ? '<div class="notif-dot"></div>' : ''}
+        </div>`).join('');
+    }
+
+    window.marcarLeidaYNavegar = async (id, tipo, linkId) => {
+      await db.from('notificaciones').update({ leida: true }).eq('id', id);
+      actualizarBadgeNotif();
+      $('notif-panel').classList.add('oculto');
+      $('notif-overlay').classList.add('oculto');
+      // Navegar según el tipo
+      if (tipo === 'dm' && linkId) abrirDM(linkId, linkId.split('@')[0]);
+      if (tipo === 'foro' && linkId) abrirPreguntaDesdeSearch(linkId);
     };
 
     // ── BÚSQUEDA GLOBAL ──────────────────────────────────────────
@@ -2319,7 +2445,10 @@
         de_nombre: usuario.nombre,
         para_email: dmActual.email,
         texto
-      }).then(({ error }) => { if (error) console.error(error); });
+      }).then(({ error }) => {
+        if (error) console.error(error);
+        else crearNotificacion(dmActual.email, 'dm', '✉️ ' + usuario.nombre, texto.slice(0, 60), usuario.email);
+      });
     }
 
     // Foto en DM
@@ -2636,6 +2765,10 @@
       });
 
       sumarPuntos(5);
+      // Notificar al autor de la pregunta
+      if (preguntaActual.autor_email !== usuario.email) {
+        crearNotificacion(preguntaActual.autor_email, 'foro', '💬 Nueva respuesta', usuario.nombre + ' respondió tu pregunta: ' + preguntaActual.titulo.slice(0,40), preguntaActual.id);
+      }
       $('resp-texto').value = '';
       $('resp-foto').value  = '';
       $('resp-foto-preview').innerHTML = '';
