@@ -1654,8 +1654,8 @@
       if (miembros.length === 0) { vacio('lista-miembros', '👥', 'Sin miembros.'); return; }
 
       // Ver si soy el creador del grupo
-      const { data: grupoInfo } = await db.from('grupos').select('creador_email').eq('id', grupoActual.id).single();
-      const soCreador = grupoInfo?.creador_email === usuario.email;
+      const { data: grupoInfo } = await db.from('grupos').select('creador_email,privado').eq('id', grupoActual.id).single();
+      const soCreador = grupoInfo?.creador_email === usuario.email && grupoInfo?.privado;
 
       $('lista-miembros').innerHTML = miembros.map(email => {
         const isOnline = onlineUsers.has(email);
