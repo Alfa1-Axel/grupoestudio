@@ -1282,6 +1282,7 @@
       activarTab('chat');
       escucharMensajes();
       cargarMensajeFijado();
+      setTimeout(ajustarAlturaChat, 100);
     }
 
     $('btn-volver').onclick = () => {
@@ -1455,31 +1456,40 @@
     };
 
     // ── TECLADO MÓVIL ────────────────────────────────────────────
-    if (window.visualViewport) {
-      function ajustarChat() {
-        const alturaVentana = window.innerHeight;
-        const alturaVisible = window.visualViewport.height;
-        const teclado = Math.max(0, alturaVentana - alturaVisible - window.visualViewport.offsetTop);
+    function ajustarAlturaChat() {
+      // Calcular top real del chat (topbar + tabs)
+      const tabs = document.querySelector('.tabs');
+      const topbar = document.querySelector('#pantalla-grupo .topbar');
+      if (!tabs || !topbar) return;
+      const topReal = topbar.offsetHeight + tabs.offsetHeight;
 
-        // Ajustar chat grupal
-        const chat = $('tab-chat');
-        if (chat && !chat.classList.contains('oculto')) {
-          chat.style.bottom = teclado + 'px';
-          const mensajes = $('mensajes');
-          if (mensajes) setTimeout(() => { mensajes.scrollTop = mensajes.scrollHeight; }, 100);
-        }
+      const alturaVentana = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      const teclado = window.visualViewport
+        ? Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop)
+        : 0;
 
-        // Ajustar DM
-        const dm = $('tab-dm');
-        if (dm && !dm.classList.contains('oculto')) {
-          dm.style.bottom = teclado + 'px';
-          const dmMensajes = $('dm-mensajes');
-          if (dmMensajes) setTimeout(() => { dmMensajes.scrollTop = dmMensajes.scrollHeight; }, 100);
-        }
+      const chat = $('tab-chat');
+      if (chat && !chat.classList.contains('oculto')) {
+        chat.style.top    = topReal + 'px';
+        chat.style.bottom = teclado + 'px';
+        chat.style.height = 'auto';
+        const mensajes = $('mensajes');
+        if (mensajes) setTimeout(() => { mensajes.scrollTop = mensajes.scrollHeight; }, 100);
       }
-      window.visualViewport.addEventListener('resize', ajustarChat);
-      window.visualViewport.addEventListener('scroll', ajustarChat);
+
+      const dm = $('tab-dm');
+      if (dm && !dm.classList.contains('oculto')) {
+        dm.style.bottom = teclado + 'px';
+        const dmMensajes = $('dm-mensajes');
+        if (dmMensajes) setTimeout(() => { dmMensajes.scrollTop = dmMensajes.scrollHeight; }, 100);
+      }
     }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', ajustarAlturaChat);
+      window.visualViewport.addEventListener('scroll', ajustarAlturaChat);
+    }
+    window.addEventListener('resize', ajustarAlturaChat);
 
     // ── SCROLL TO BOTTOM BUTTON ─────────────────────────────────
     const mensajesEl = $('mensajes');
