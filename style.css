@@ -406,6 +406,9 @@ select option { background: var(--surface2); }
   flex-direction: column;
   width: 100%;
   max-width: 100%;
+  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .tabs {
@@ -441,16 +444,26 @@ select option { background: var(--surface2); }
 }
 
 /* ── Chat ── */
+#pantalla-grupo {
+  display: flex !important;
+  flex-direction: column;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+#pantalla-grupo .topbar  { position: relative; flex-shrink: 0; }
+#pantalla-grupo .tabs    { position: relative; flex-shrink: 0; }
+.tab-content             { display: none; }
+.tab-content:not(.oculto) { display: flex; flex: 1; flex-direction: column; min-height: 0; overflow: hidden; }
 #tab-chat {
-  position: fixed;
-  top: 110px;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  width: 100%;
+  min-height: 0;
 }
 #mensaje-fijado-banner {
   width: 100%;
@@ -481,35 +494,25 @@ select option { background: var(--surface2); }
   right: 20px;
 }
 .mensaje {
-  display: block;
   max-width: 65%;
   border-radius: 16px;
   padding: 10px 14px;
   font-size: 14px;
   line-height: 1.55;
   word-break: break-word;
-  clear: both;
 }
 .mensaje.propio {
-  float: right;
+  align-self: flex-end;
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   color: #fff;
   border-bottom-right-radius: 4px;
   box-shadow: 0 4px 16px rgba(79,142,247,0.22);
-  margin-left: auto;
 }
 .mensaje.otro {
-  float: left;
+  align-self: flex-start;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-bottom-left-radius: 4px;
-  margin-right: auto;
-}
-/* Clearfix para float */
-.mensajes::after {
-  content: '';
-  display: table;
-  clear: both;
 }
 .mensaje .autor { font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 3px; }
 .mensaje .texto { word-break: break-word; }
