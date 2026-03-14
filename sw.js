@@ -1,31 +1,4 @@
-importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
-
-firebase.initializeApp({
-  apiKey:            "AIzaSyDlo-aTge1YuwYnMFtDvR9Jv-tV8LD9Yz8",
-  authDomain:        "grupoestudio-notif.firebaseapp.com",
-  projectId:         "grupoestudio-notif",
-  storageBucket:     "grupoestudio-notif.firebasestorage.app",
-  messagingSenderId: "57965103786",
-  appId:             "1:57965103786:web:2f8b508c6eb69a0da71ed3"
-});
-
-const messaging = firebase.messaging();
-
-// Notificaciones en segundo plano
-messaging.onBackgroundMessage(payload => {
-  const { title, body } = payload.notification || {};
-  self.registration.showNotification(title || 'GrupoEstudio', {
-    body:    body || '',
-    icon:    '/icons/icon-192.png',
-    badge:   '/icons/icon-192.png',
-    vibrate: [200, 100, 200],
-    data:    payload.data
-  });
-});
-
-// Cache para PWA
-const CACHE_NAME = 'grupoestudio-v2';
+const CACHE_NAME = 'grupoestudio-v3';
 const STATIC_ASSETS = ['/', '/index.html', '/style.css'];
 
 self.addEventListener('install', event => {
@@ -45,13 +18,23 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Solo cachear requests http/https, ignorar chrome-extension y otros
   if (event.request.method !== 'GET') return;
+  if (!event.request.url.startsWith('http')) return;
+
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        if (response && response.status === 200 && response.type !== 'opaque') {
+          try {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              // Solo cachear URLs http/https
+              if (event.request.url.startsWith('http')) {
+                cache.put(event.request, clone).catch(() => {});
+              }
+            });
+          } catch(e) {}
         }
         return response;
       })

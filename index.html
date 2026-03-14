@@ -8,6 +8,7 @@
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#4f8ef7">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="GrupoEstudio">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
@@ -1331,17 +1332,23 @@
           schema: 'public',
           table:  'mensajes'
         }, payload => {
-          if (payload.eventType !== 'INSERT') return;
           const m = payload.new;
           if (!m || m.grupo_id !== grupoActual.id) return;
-          // Evitar duplicados
-          if (mensajesRendered.has(m.id)) return;
-          mensajesRendered.add(m.id);
-          const vac = $('mensajes').querySelector('.vacio');
-          if (vac) $('mensajes').innerHTML = '';
-          $('mensajes').insertAdjacentHTML('beforeend', htmlMensaje(m));
-          $('mensajes').scrollTop = $('mensajes').scrollHeight;
-          if (m.email !== usuario.email) mostrarNotificacion(m.autor, m.texto);
+
+          if (payload.eventType === 'INSERT') {
+            if (mensajesRendered.has(m.id)) return;
+            mensajesRendered.add(m.id);
+            const vac = $('mensajes').querySelector('.vacio');
+            if (vac) $('mensajes').innerHTML = '';
+            $('mensajes').insertAdjacentHTML('beforeend', htmlMensaje(m));
+            $('mensajes').scrollTop = $('mensajes').scrollHeight;
+            if (m.email !== usuario.email) mostrarNotificacion(m.autor, m.texto || '📷 Imagen');
+          } else if (payload.eventType === 'UPDATE') {
+            // Actualizar encuesta en tiempo real
+            const el = $('mensajes').querySelector(`[data-id="${m.id}"]`);
+            if (el) el.outerHTML = htmlMensaje(m);
+            if (m.fijado !== undefined) cargarMensajeFijado();
+          }
         })
         .subscribe(status => {
           console.log('Chat realtime status:', status);
@@ -1394,7 +1401,7 @@
             <span class="encuesta-pct">${pct}%</span>
           </div>`;
         }).join('');
-        return `<div class="mensaje ${esPropio ? 'propio' : 'otro'} mensaje-encuesta">
+        return `<div class="mensaje ${esPropio ? 'propio' : 'otro'} mensaje-encuesta" data-id="${m.id}">
           ${!esPropio ? `<div class="autor">${m.autor}</div>` : ''}
           <div class="encuesta-wrap">
             <div class="encuesta-titulo">📊 ${m.texto}</div>
@@ -1413,7 +1420,7 @@
         ${m.fijado ? '📌 Desfijar' : '📌 Fijar'}
       </div>` : '';
 
-      return `<div class="mensaje ${esPropio ? 'propio' : 'otro'} ${m.fijado ? 'fijado' : ''}" oncontextmenu="mostrarMenuMensaje(event,'${m.id}',${!!m.fijado});return false;">
+      return `<div class="mensaje ${esPropio ? 'propio' : 'otro'} ${m.fijado ? 'fijado' : ''}" data-id="${m.id}" oncontextmenu="mostrarMenuMensaje(event,'${m.id}',${!!m.fijado});return false;">
         ${!esPropio ? `<div class="autor">${m.autor}</div>` : ''}
         ${contenido}
         <div class="hora">${hora}${m.fijado ? ' 📌' : ''}</div>
