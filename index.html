@@ -2488,16 +2488,17 @@
     async function cargarMensajeFijado() {
       const { data } = await db.from('mensajes')
         .select('*').eq('grupo_id', grupoActual.id).eq('fijado', true)
-        .order('hora', { ascending: false }).limit(1).single();
+        .order('hora', { ascending: false }).limit(1);
 
       const banner = $('mensaje-fijado-banner');
-      if (data) {
+      const msg = data && data.length > 0 ? data[0] : null;
+      if (msg) {
         banner.classList.remove('oculto');
         banner.innerHTML = `
           <div class="banner-fijado">
             <span>📌</span>
-            <span class="banner-texto">${data.imagen_url ? '📷 Imagen' : data.texto}</span>
-            <span class="banner-autor">— ${data.autor}</span>
+            <span class="banner-texto">${msg.imagen_url ? '📷 Imagen' : msg.texto}</span>
+            <span class="banner-autor">— ${msg.autor}</span>
           </div>`;
       } else {
         banner.classList.add('oculto');
