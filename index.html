@@ -182,6 +182,7 @@
     <div class="tab-content" id="tab-chat">
       <div id="mensaje-fijado-banner" class="oculto"></div>
       <div class="mensajes" id="mensajes"></div>
+      <button id="btn-scroll-abajo" class="btn-scroll-abajo oculto">↓</button>
       <div class="chat-input-wrap">
         <label class="btn-foto-chat" title="Enviar foto">
           📷
@@ -1451,6 +1452,20 @@
       if (!estaFijado) await db.from('mensajes').update({ fijado: true }).eq('id', id);
       cargarMensajeFijado();
       escucharMensajes();
+    };
+
+    // ── SCROLL TO BOTTOM BUTTON ─────────────────────────────────
+    const mensajesEl = $('mensajes');
+    mensajesEl.addEventListener('scroll', () => {
+      const distFromBottom = mensajesEl.scrollHeight - mensajesEl.scrollTop - mensajesEl.clientHeight;
+      const btn = $('btn-scroll-abajo');
+      if (distFromBottom > 150) btn.classList.remove('oculto');
+      else btn.classList.add('oculto');
+    });
+
+    $('btn-scroll-abajo').onclick = () => {
+      $('mensajes').scrollTop = $('mensajes').scrollHeight;
+      $('btn-scroll-abajo').classList.add('oculto');
     };
 
     $('btn-enviar').onclick = enviarMensaje;

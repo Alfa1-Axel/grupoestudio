@@ -449,6 +449,10 @@ select option { background: var(--surface2); }
   flex-direction: column;
   overflow: hidden;
 }
+#mensaje-fijado-banner {
+  flex-shrink: 0;
+  z-index: 10;
+}
 .mensajes {
   flex: 1;
   overflow-y: auto;
@@ -459,6 +463,7 @@ select option { background: var(--surface2); }
   gap: 6px;
   scrollbar-width: thin;
   scrollbar-color: var(--border2) transparent;
+  position: relative;
 }
 .mensaje {
   display: block;
@@ -1757,3 +1762,27 @@ input:focus, select:focus, textarea:focus {
   flex-shrink: 0;
 }
 .btn-eliminar-miembro:hover { background: rgba(247,95,95,0.1); }
+
+/* ── Botón scroll al último mensaje ── */
+.btn-scroll-abajo {
+  position: absolute;
+  bottom: 80px;
+  right: 20px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  color: var(--accent);
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s, box-shadow 0.2s;
+  font-family: var(--fbody);
+}
+.btn-scroll-abajo:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.5); }
+#tab-chat { position: relative; }
