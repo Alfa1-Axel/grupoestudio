@@ -1455,26 +1455,22 @@
     };
 
     // ── TECLADO MÓVIL ────────────────────────────────────────────
-    // Usar Visual Viewport API para detectar el teclado
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', () => {
+      function ajustarChat() {
         const chat = $('tab-chat');
         if (!chat || chat.classList.contains('oculto')) return;
-        const altura = window.visualViewport.height;
-        const offset = window.visualViewport.offsetTop;
-        chat.style.height = (altura - 110 + offset) + 'px';
-        // Scroll al fondo cuando aparece el teclado
+        // Calcular el espacio que ocupa el teclado
+        const alturaVentana = window.innerHeight;
+        const alturaVisible = window.visualViewport.height;
+        const teclado = alturaVentana - alturaVisible - window.visualViewport.offsetTop;
+        // Mover el bottom del chat hacia arriba por el teclado
+        chat.style.bottom = Math.max(0, teclado) + 'px';
+        // Scroll al último mensaje
         const mensajes = $('mensajes');
-        if (mensajes) setTimeout(() => { mensajes.scrollTop = mensajes.scrollHeight; }, 50);
-      });
-
-      window.visualViewport.addEventListener('scroll', () => {
-        const chat = $('tab-chat');
-        if (!chat || chat.classList.contains('oculto')) return;
-        const altura = window.visualViewport.height;
-        const offset = window.visualViewport.offsetTop;
-        chat.style.height = (altura - 110 + offset) + 'px';
-      });
+        if (mensajes) setTimeout(() => { mensajes.scrollTop = mensajes.scrollHeight; }, 100);
+      }
+      window.visualViewport.addEventListener('resize', ajustarChat);
+      window.visualViewport.addEventListener('scroll', ajustarChat);
     }
 
     // ── SCROLL TO BOTTOM BUTTON ─────────────────────────────────
