@@ -291,6 +291,10 @@ select option { background: var(--surface2); }
   align-items: flex-start;
   justify-content: flex-start;
 }
+#pantalla-grupo {
+  align-items: flex-start;
+  justify-content: flex-start;
+}
 
 .page-wrap {
   width: 100%;
@@ -444,26 +448,14 @@ select option { background: var(--surface2); }
 }
 
 /* ── Chat ── */
-#pantalla-grupo {
-  display: flex !important;
-  flex-direction: column;
-  height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden;
-  align-items: stretch;
-  justify-content: flex-start;
-}
-#pantalla-grupo .topbar  { position: relative; flex-shrink: 0; }
-#pantalla-grupo .tabs    { position: relative; flex-shrink: 0; }
-.tab-content             { display: none; }
-.tab-content:not(.oculto) { display: flex; flex: 1; flex-direction: column; min-height: 0; overflow: hidden; }
 #tab-chat {
-  flex: 1;
+  position: fixed;
+  top: 110px;
+  left: 0; right: 0; bottom: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  width: 100%;
-  min-height: 0;
 }
 #mensaje-fijado-banner {
   width: 100%;
