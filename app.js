@@ -1716,7 +1716,6 @@
       cargando('explorar-lista');
       const { data } = await db.from('grupos')
         .select('id,nombre,materia,creador,miembros,descripcion')
-        .eq('privado', false)
         .order('creado_el', { ascending: false })
         .limit(20);
 
@@ -2340,9 +2339,9 @@
       $('resp-foto-preview').innerHTML = '';
       cargarRespuestas(preguntaActual.id);
     };
+    // Registrar Service Worker (PWA)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
         .then(reg => console.log('SW registrado:', reg.scope))
-        .catch(err => console.log('SW error:', err))
+        .catch(err => console.log('SW error:', err));
     }
-  
