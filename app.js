@@ -20,7 +20,11 @@ if (btnTema) {
     aplicarTema(esClaro ? 'oscuro' : 'claro');
   };
 }
-
+btnTema.addEventListener("click", ()=>{
+  const esClaro = document.body.classList.contains('light');
+    console.log("se hizo click en el botón: ", esClaro)
+    aplicarTema(esClaro ? 'oscuro' : 'claro');
+} )
 // Cargar tema al iniciar la app
 const temaGuardado = localStorage.getItem('tema_grupoestudio') || 'oscuro';
 aplicarTema(temaGuardado);
