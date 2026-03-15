@@ -2875,20 +2875,23 @@
     $('dm-foto-input').addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file || !dmActual) return;
-      e.target.value = '';
       const btn = document.querySelector('#pantalla-dm .btn-foto-chat');
-      btn.textContent = '⏳';
+      if (btn) btn.textContent = '⏳';
       try {
         const url = await subirImagenCloudinary(file, 'dm');
-        db.from('mensajes_privados').insert({
+        await db.from('mensajes_privados').insert({
           de_email:   usuario.email,
           de_nombre:  usuario.nombre,
           para_email: dmActual.email,
           texto:      '',
           imagen_url: url
         });
-      } catch(e) { alert('Error subiendo imagen'); }
-      finally { btn.textContent = '📷'; }
+      } catch(err) {
+        alert('Error subiendo imagen: ' + err.message);
+      } finally {
+        e.target.value = '';
+        if (btn) btn.textContent = '📷';
+      }
     });
 
     // ── BANDEJA ──────────────────────────────────────────────────
