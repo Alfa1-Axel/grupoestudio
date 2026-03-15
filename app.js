@@ -1,23 +1,31 @@
-// ── GESTIÓN DEL TEMA (MODO OSCURO/CLARO) ──
-// Revisamos si el usuario ya había elegido el modo claro antes
-const temaGuardado = localStorage.getItem('temaPreferido');
-if (temaGuardado === 'light') {
-  document.body.classList.add('light');
-}
+const btnTema = document.getElementById('btn-tema');
 
-// Función para alternar el tema y guardarlo
-function cambiarTema() {
-  document.body.classList.toggle('light');
-  
-  if (document.body.classList.contains('light')) {
-    localStorage.setItem('temaPreferido', 'light');
+function aplicarTema(modo) {
+  if (modo === 'claro') {
+    document.body.classList.add('light');
+    document.documentElement.setAttribute('data-tema', 'claro');
+    if (btnTema) btnTema.textContent = '☀️';
   } else {
-    localStorage.setItem('temaPreferido', 'dark'); // dark es el default
+    document.body.classList.remove('light');
+    document.documentElement.setAttribute('data-tema', 'oscuro');
+    if (btnTema) btnTema.textContent = '🌙';
   }
+  localStorage.setItem('tema_grupoestudio', modo);
 }
 
-// ── AUTENTICACIÓN Y SESIÓN ──
-// Guardamos usuarios en el navegador (por ahora sin servidor)
+if (btnTema) {
+  btnTema.onclick = () => {
+    const esClaro = document.body.classList.contains('light');
+    aplicarTema(esClaro ? 'oscuro' : 'claro');
+  };
+}
+
+// Cargar tema al iniciar la app
+const temaGuardado = localStorage.getItem('tema_grupoestudio') || 'oscuro';
+aplicarTema(temaGuardado);
+
+
+// ── USUARIOS Y SESIÓN (LOCALSTORAGE) ─────────────────────────
 let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
 let usuarioActual = JSON.parse(localStorage.getItem('usuarioActual')) || null;
 
@@ -27,9 +35,9 @@ if (usuarioActual) {
 }
 
 function registrarse() {
-  const nombre = document.getElementById('nombre').value.trim();
-  const email = document.getElementById('email-reg').value.trim();
-  const password = document.getElementById('password-reg').value;
+  const nombre = document.getElementById('reg-nombre').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-pass').value;
 
   if (!nombre || !email || !password) {
     alert('Completá todos los campos');
@@ -51,8 +59,8 @@ function registrarse() {
 }
 
 function iniciarSesion() {
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-pass').value;
 
   const usuario = usuarios.find(u => u.email === email && u.password === password);
 
@@ -72,12 +80,18 @@ function cerrarSesion() {
   mostrarLogin();
 }
 
-// ── NAVEGACIÓN DE PANTALLAS ──
 function mostrarInicio() {
   ocultar('pantalla-login');
   ocultar('pantalla-registro');
   mostrar('pantalla-inicio');
-  document.getElementById('saludo').textContent = '👤 ' + usuarioActual.nombre;
+  
+  const inicioNombre = document.getElementById('inicio-nombre');
+  if (inicioNombre) inicioNombre.textContent = usuarioActual.nombre;
+  
+  const inicioAvatar = document.getElementById('inicio-avatar');
+  if (inicioAvatar) inicioAvatar.textContent = usuarioActual.nombre[0].toUpperCase();
+
+  renderizarGrupos();
 }
 
 function mostrarLogin() {
@@ -93,11 +107,13 @@ function mostrarRegistro() {
 }
 
 function mostrar(id) {
-  document.getElementById(id).classList.remove('oculto');
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('oculto');
 }
 
 function ocultar(id) {
-  document.getElementById(id).classList.add('oculto');
+  const el = document.getElementById(id);
+  if (el) el.classList.add('oculto');
 }
 
 // ── GRUPOS ──────────────────────────────────────────────────────
@@ -109,13 +125,13 @@ function mostrarFormGrupo() {
 
 function ocultarFormGrupo() {
   document.getElementById('form-grupo').classList.add('oculto');
-  document.getElementById('nombre-grupo').value = '';
-  document.getElementById('materia-grupo').value = '';
+  document.getElementById('nuevo-nombre').value = '';
+  document.getElementById('nuevo-materia').value = '';
 }
 
 function crearGrupo() {
-  const nombre = document.getElementById('nombre-grupo').value.trim();
-  const materia = document.getElementById('materia-grupo').value.trim();
+  const nombre = document.getElementById('nuevo-nombre').value.trim();
+  const materia = document.getElementById('nuevo-materia').value.trim();
 
   if (!nombre || !materia) {
     alert('Completá nombre y materia');
@@ -145,7 +161,7 @@ function renderizarGrupos() {
   const misGrupos = grupos.filter(g => g.miembros.includes(usuarioActual.email));
 
   if (misGrupos.length === 0) {
-    lista.innerHTML = '<div class="sin-grupos">📭 Todavía no tenés grupos.<br>¡Creá el primero!</div>';
+    lista.innerHTML = '<div class="vacio"><span>📭</span>Todavía no tenés grupos.<br>¡Creá el primero!</div>';
     return;
   }
 
@@ -155,12 +171,11 @@ function renderizarGrupos() {
         <h3>📘 ${g.nombre}</h3>
         <p>${g.materia} · ${g.miembros.length} miembro(s) · Creado por ${g.creador}</p>
       </div>
-      <button class="btn-entrar" onclick="entrarGrupo(${g.id})">Entrar →</button>
+      <button class="tag" style="border:none; cursor:pointer;" onclick="entrarGrupo(${g.id})">Entrar →</button>
     </div>
   `).join('');
 }
 
-// ── CHAT DE GRUPO ──
 let grupoActual = null;
 
 function entrarGrupo(id) {
@@ -169,8 +184,13 @@ function entrarGrupo(id) {
   ocultar('pantalla-inicio');
   mostrar('pantalla-grupo');
 
-  document.getElementById('nombre-grupo-actual').textContent = '📘 ' + grupoActual.nombre;
-  document.getElementById('saludo-grupo').textContent = '👤 ' + usuarioActual.nombre;
+  document.getElementById('grupo-titulo').textContent = grupoActual.nombre;
+  
+  const grupoNombreUsuario = document.getElementById('grupo-nombre-usuario');
+  if (grupoNombreUsuario) grupoNombreUsuario.textContent = usuarioActual.nombre;
+  
+  const grupoAvatar = document.getElementById('grupo-avatar');
+  if (grupoAvatar) grupoAvatar.textContent = usuarioActual.nombre[0].toUpperCase();
 
   renderizarMensajes();
 }
@@ -210,7 +230,7 @@ function renderizarMensajes() {
   const contenedor = document.getElementById('mensajes');
 
   if (mensajes.length === 0) {
-    contenedor.innerHTML = '<div class="sin-mensajes">💬 Nadie escribió todavía.<br>¡Sé el primero!</div>';
+    contenedor.innerHTML = '<div class="vacio" style="margin:auto"><span>💬</span> Nadie escribió todavía.<br>¡Sé el primero!</div>';
     return;
   }
 
@@ -219,7 +239,7 @@ function renderizarMensajes() {
     return `
       <div class="mensaje ${esPropio ? 'propio' : 'otro'}">
         ${!esPropio ? <div class="autor">${m.autor}</div> : ''}
-        ${m.texto}
+        <div class="texto">${m.texto}</div>
         <div class="hora">${m.hora}</div>
       </div>
     `;
@@ -227,11 +247,4 @@ function renderizarMensajes() {
 
   // Scroll al último mensaje
   contenedor.scrollTop = contenedor.scrollHeight;
-}
-
-// Renderizar grupos al cargar inicio
-const _mostrarInicioOriginal = mostrarInicio;
-mostrarInicio = function() {
-  _mostrarInicioOriginal();
-  renderizarGrupos();
 }
