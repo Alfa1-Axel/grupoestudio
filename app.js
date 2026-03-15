@@ -1725,11 +1725,12 @@
       if (!$('explorar-lista')) return;
       cargando('explorar-lista');
       const { data } = await db.from('grupos')
-        .select('id,nombre,materia,creador,miembros,descripcion')
+        .select('id,nombre,materia,creador,miembros,descripcion,privado')
+        .eq('privado', false)
         .order('creado_el', { ascending: false })
-        .limit(20);
+        .limit(30);
 
-      if (!data || data.length === 0) { vacio('explorar-lista', '🔍', 'No hay grupos publicos.'); return; }
+      if (!data || data.length === 0) { vacio('explorar-lista', '🔍', 'No hay grupos públicos todavía.'); return; }
 
       $('explorar-lista').innerHTML = data.map(g => {
         const esMiembro = g.miembros?.includes(usuario.email);
@@ -1739,21 +1740,59 @@
             <p>${g.materia} · ${g.miembros?.length || 0} miembros · ${g.creador}</p>
             ${g.descripcion ? `<p style="color:var(--muted);font-size:11px;margin-top:2px">${g.descripcion}</p>` : ''}
           </div>
-          <span class="tag">${esMiembro ? 'Entrar →' : '+ Unirse'}</span>
+          <span class="tag">${esMiembro ? 'Entrar →' : '👁 Ver'}</span>
         </div>`;
       }).join('');
 
-      // Eventos con data-attributes para evitar problemas con comillas
       document.querySelectorAll('.explorar-card').forEach(card => {
         card.addEventListener('click', () => {
-          const id     = card.dataset.id;
-          const nombre = card.dataset.nombre;
+          const id       = card.dataset.id;
+          const nombre   = card.dataset.nombre;
           const esMiembro = card.dataset.miembro === 'true';
           if (esMiembro) entrarGrupo(id, nombre);
-          else unirseYEntrar(id, nombre);
+          else abrirVistaPrevia(id, nombre);
         });
       });
     }
+
+    // ── VISTA PREVIA DE GRUPO ────────────────────────────────────
+    async function abrirVistaPrevia(id, nombre) {
+      ir('pantalla-vista-previa');
+      $('preview-titulo').textContent = nombre;
+      cargando('preview-mensajes');
+      $('preview-unirse').dataset.id     = id;
+      $('preview-unirse').dataset.nombre = nombre;
+
+      const { data } = await db.from('mensajes')
+        .select('autor,texto,imagen_url,hora')
+        .eq('grupo_id', id)
+        .order('hora', { ascending: false })
+        .limit(20);
+
+      if (!data || data.length === 0) {
+        $('preview-mensajes').innerHTML = '<div class="vacio">💬 Este grupo todavía no tiene mensajes.</div>';
+        return;
+      }
+
+      $('preview-mensajes').innerHTML = [...data].reverse().map(m => {
+        const hora = m.hora ? new Date(m.hora).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : '';
+        const contenido = m.imagen_url
+          ? `<img src="${m.imagen_url}" class="msg-img" style="max-width:180px" />`
+          : `<div class="texto">${m.texto}</div>`;
+        return `<div class="mensaje otro">
+          <div class="autor">${m.autor}</div>
+          ${contenido}
+          <div class="hora">${hora}</div>
+        </div>`;
+      }).join('');
+    }
+
+    $('btn-volver-preview').onclick = () => ir('pantalla-inicio');
+    $('preview-unirse').onclick = () => {
+      const id     = $('preview-unirse').dataset.id;
+      const nombre = $('preview-unirse').dataset.nombre;
+      unirseYEntrar(id, nombre);
+    };
 
     // ── MODO CLARO/OSCURO ────────────────────────────────────────
     let temaOscuro = localStorage.getItem('tema') !== 'claro';
