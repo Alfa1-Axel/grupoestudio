@@ -4,6 +4,8 @@
     const db            = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const $ = id => document.getElementById(id);
 
+    let replyActual = null;
+
     const CLOUD_NAME    = 'dhtyvavcy';
     const CLOUD_PRESET  = 'grupoestudio';
 
@@ -652,15 +654,18 @@
     async function enviarMensaje() {
       const texto = $('msg-input').value.trim();
       if (!texto || !grupoActual) return;
-      // Limpiar input inmediatamente sin bloquear
       $('msg-input').value = '';
       $('msg-input').focus();
-      // Insertar en background — no bloqueamos con await
+      const extra = replyActual
+        ? { reply_a: replyActual.id, reply_texto: replyActual.texto.slice(0,100), reply_autor: replyActual.autor }
+        : {};
+      cancelarReply();
       db.from('mensajes').insert({
         grupo_id: grupoActual.id,
         autor:    usuario.nombre,
         email:    usuario.email,
-        texto
+        texto,
+        ...extra
       }).then(({ error }) => {
         if (error) console.error('Error enviando mensaje:', error.message);
         else sumarPuntos(2);
@@ -1626,7 +1631,6 @@
     };
 
     // ── QUOTE REPLY ──────────────────────────────────────────────
-    let replyActual = null;
 
     window.responderMensaje = (id, texto, autor) => {
       replyActual = { id, texto, autor };
@@ -1648,22 +1652,7 @@
       if (p) { p.classList.add('oculto'); p.innerHTML = ''; }
     };
 
-    // Modificar enviarMensaje para incluir reply
-    const enviarMensajeOriginal = enviarMensaje;
-    enviarMensaje = async function() {
-      const texto = $('msg-input').value.trim();
-      if (!texto || !grupoActual) return;
-      $('msg-input').value = '';
-      $('msg-input').focus();
-      const extra = replyActual ? { reply_a: replyActual.id, reply_texto: replyActual.texto.slice(0,100), reply_autor: replyActual.autor } : {};
-      cancelarReply();
-      db.from('mensajes').insert({
-        grupo_id: grupoActual.id, autor: usuario.nombre, email: usuario.email, texto, ...extra
-      }).then(({ error }) => {
-        if (error) console.error(error);
-        else sumarPuntos(2);
-      });
-    };
+
 
     // ── ESTADÍSTICAS DEL GRUPO ───────────────────────────────────
     async function cargarEstadisticasGrupo() {
@@ -2351,3 +2340,11 @@
       $('resp-foto-preview').innerHTML = '';
       cargarRespuestas(preguntaActual.id);
     };
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('SW registrado:', reg.scope))
+        .catch(err => console.log('SW error:', err))
+    }
+     </script>
