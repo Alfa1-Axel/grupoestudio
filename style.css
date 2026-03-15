@@ -444,7 +444,6 @@ select option { background: var(--surface2); }
 
 .tab-content {
   width: 100%;
-  margin-top: 110px; /* topbar (56) + tabs (54) */
 }
 
 /* ── Chat ── */
@@ -1659,7 +1658,6 @@ input:focus, select:focus, textarea:focus {
   .tab-btn { font-size: 11px; padding: 10px 8px; gap: 3px; }
   .tabs { gap: 0; }
   .chat-input-wrap { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
-  #tab-chat { bottom: calc(62px + env(safe-area-inset-bottom)); }
 }
 
 /* ════════════════════════════════════════
