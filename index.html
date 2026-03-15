@@ -1103,6 +1103,8 @@
       document.querySelectorAll('.pantalla').forEach(p => p.classList.add('oculto'));
       const el = document.getElementById(pantalla);
       if (el) el.classList.remove('oculto');
+      // Guardar pantalla actual para restaurar al recargar
+      try { localStorage.setItem('pantalla_actual', pantalla); } catch(e) {}
     }
 
     window.addEventListener('popstate', (e) => {
@@ -1116,6 +1118,7 @@
           if (presenceSub) { presenceSub.unsubscribe(); presenceSub = null; }
           grupoActual = null;
           onlineUsers = new Set();
+          try { localStorage.removeItem('grupo_actual_id'); localStorage.removeItem('grupo_actual_nombre'); } catch(e) {}
         }
         if (pantallaActual === 'pantalla-dm') {
           if (dmSub) { db.removeChannel(dmSub); dmSub = null; }
@@ -1158,6 +1161,8 @@
         await cargarInicio();
         iniciarNotificaciones();
         procesarInvitacion();
+        // Restaurar pantalla anterior si existía
+        await restaurarPantalla();
         // Crear/cargar perfil en background
         cargarPerfil();
       } else {
@@ -1319,6 +1324,12 @@
     function entrarGrupo(id, nombre) {
       grupoActual = { id, nombre };
       if (chatSub) chatSub.unsubscribe();
+
+      // Guardar grupo actual para restaurar al recargar
+      try {
+        localStorage.setItem('grupo_actual_id', id);
+        localStorage.setItem('grupo_actual_nombre', nombre);
+      } catch(e) {}
 
       ir('pantalla-grupo');
       $('grupo-titulo').textContent         = nombre;
@@ -2381,6 +2392,34 @@
       if (tipo === 'dm' && linkId) abrirDM(linkId, linkId.split('@')[0]);
       if (tipo === 'foro' && linkId) abrirPreguntaDesdeSearch(linkId);
     };
+
+    // ── RESTAURAR PANTALLA ───────────────────────────────────────
+    async function restaurarPantalla() {
+      try {
+        const pantalla = localStorage.getItem('pantalla_actual');
+        const grupoId  = localStorage.getItem('grupo_actual_id');
+        const grupoNombre = localStorage.getItem('grupo_actual_nombre');
+
+        if (pantalla === 'pantalla-grupo' && grupoId && grupoNombre) {
+          await entrarGrupo(grupoId, grupoNombre);
+        } else if (pantalla === 'pantalla-foro') {
+          ir('pantalla-foro');
+          $('foro-avatar').textContent = usuario.nombre[0].toUpperCase();
+          $('foro-nombre').textContent = usuario.nombre;
+          mostrarListaForo();
+          cargarPreguntas();
+        } else if (pantalla === 'pantalla-clases') {
+          irClases();
+        } else if (pantalla === 'pantalla-ranking') {
+          ir('pantalla-ranking');
+          cargarRanking();
+        } else if (pantalla === 'pantalla-bandeja') {
+          ir('pantalla-bandeja');
+          cargarBandeja();
+        }
+        // Para otras pantallas volvemos al inicio (login, registro, etc.)
+      } catch(e) {}
+    }
 
     // ── BÚSQUEDA GLOBAL ──────────────────────────────────────────
     function abrirBusqueda() {
