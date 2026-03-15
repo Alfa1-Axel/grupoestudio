@@ -1733,17 +1733,26 @@
 
       $('explorar-lista').innerHTML = data.map(g => {
         const esMiembro = g.miembros?.includes(usuario.email);
-        return `<div class="grupo-card">
+        return `<div class="grupo-card explorar-card" data-id="${g.id}" data-nombre="${g.nombre.replace(/"/g,'&quot;')}" data-miembro="${esMiembro}">
           <div class="grupo-info">
             <h3>📘 ${g.nombre}</h3>
             <p>${g.materia} · ${g.miembros?.length || 0} miembros · ${g.creador}</p>
             ${g.descripcion ? `<p style="color:var(--muted);font-size:11px;margin-top:2px">${g.descripcion}</p>` : ''}
           </div>
-          ${esMiembro
-            ? `<span class="tag" onclick="entrarGrupo('${g.id}','${g.nombre}')">Entrar →</span>`
-            : `<span class="tag" onclick="unirseYEntrar('${g.id}','${g.nombre}')">+ Unirse</span>`}
+          <span class="tag">${esMiembro ? 'Entrar →' : '+ Unirse'}</span>
         </div>`;
       }).join('');
+
+      // Eventos con data-attributes para evitar problemas con comillas
+      document.querySelectorAll('.explorar-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const id     = card.dataset.id;
+          const nombre = card.dataset.nombre;
+          const esMiembro = card.dataset.miembro === 'true';
+          if (esMiembro) entrarGrupo(id, nombre);
+          else unirseYEntrar(id, nombre);
+        });
+      });
     }
 
     // ── MODO CLARO/OSCURO ────────────────────────────────────────
