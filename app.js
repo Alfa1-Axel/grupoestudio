@@ -14,6 +14,7 @@
 
     // ── VIDEOLLAMADAS (Google Meet) ──────────────────────────────
     $('btn-iniciar-video').onclick = () => {
+      if (!grupoActual?.id) return;
       window.open('https://meet.google.com/new', '_blank');
       $('meet-link-wrap').classList.remove('oculto');
       db.from('mensajes').insert({
@@ -415,6 +416,7 @@
     const mensajesRendered = new Set();
 
     async function escucharMensajes() {
+      if (!grupoActual?.id) return;
       cargando('mensajes');
       mensajesRendered.clear();
 
