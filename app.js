@@ -1411,7 +1411,7 @@
         const grupoId  = localStorage.getItem('grupo_actual_id');
         const grupoNombre = localStorage.getItem('grupo_actual_nombre');
 
-        if (pantalla === 'pantalla-grupo' && grupoId && grupoNombre) {
+        if (pantalla === 'pantalla-grupo' && grupoId && grupoId !== 'undefined' && grupoNombre) {
           await entrarGrupo(grupoId, grupoNombre);
         } else if (pantalla === 'pantalla-foro') {
           ir('pantalla-foro');
@@ -1658,7 +1658,7 @@
 
     // ── ESTADÍSTICAS DEL GRUPO ───────────────────────────────────
     async function cargarEstadisticasGrupo() {
-      if (!grupoActual) return;
+      if (!grupoActual?.id) return;
       const [rMsg, rArch, rMiembros] = await Promise.all([
         db.from('mensajes').select('*', { count: 'exact', head: true }).eq('grupo_id', grupoActual.id),
         db.from('archivos').select('*', { count: 'exact', head: true }).eq('grupo_id', grupoActual.id),
@@ -1789,6 +1789,7 @@
 
     // ── MENSAJES FIJADOS ─────────────────────────────────────────
     async function cargarMensajeFijado() {
+      if (!grupoActual?.id) return;
       const { data } = await db.from('mensajes')
         .select('*').eq('grupo_id', grupoActual.id).eq('fijado', true)
         .order('hora', { ascending: false }).limit(1);
@@ -2340,6 +2341,7 @@
       $('resp-foto-preview').innerHTML = '';
       cargarRespuestas(preguntaActual.id);
     };
+
     // Registrar Service Worker (PWA)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
