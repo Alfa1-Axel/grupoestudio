@@ -228,28 +228,5 @@ function enviarMensaje() {
   input.value = '';
   renderizarMensajes();
 }
-
-function renderizarMensajes() {
-  const key = 'mensajes_' + grupoActual.id;
-  const mensajes = JSON.parse(localStorage.getItem(key)) || [];
-  const contenedor = document.getElementById('mensajes');
-
-  if (mensajes.length === 0) {
-    contenedor.innerHTML = '<div class="vacio" style="margin:auto"><span>💬</span> Nadie escribió todavía.<br>¡Sé el primero!</div>';
-    return;
-  }
-
-  contenedor.innerHTML = mensajes.map(m => {
-    const esPropio = m.email === usuarioActual.email;
-    return `
-      <div class="mensaje ${esPropio ? 'propio' : 'otro'}">
-        ${!esPropio ? <div class="autor">${m.autor}</div> : ''}
-        <div class="texto">${m.texto}</div>
-        <div class="hora">${m.hora}</div>
-      </div>
-    `;
-  }).join('');
-
   // Scroll al último mensaje
   contenedor.scrollTop = contenedor.scrollHeight;
-}
