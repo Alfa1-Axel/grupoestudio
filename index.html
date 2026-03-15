@@ -1436,10 +1436,12 @@
       if (tab === 'calendario') cargarEventos();
       if (tab === 'miembros')   { cargarMiembros(); cargarEstadisticasGrupo(); }
       if (tab === 'video') {
-        // Resetear estado al entrar al tab
-        $('video-iframe').src = '';
-        $('video-frame-wrap').classList.add('oculto');
-        $('video-estado').classList.remove('oculto');
+        const iframe = $('video-iframe');
+        const wrap   = $('video-frame-wrap');
+        const estado = $('video-estado');
+        if (iframe) iframe.src = '';
+        if (wrap)   wrap.classList.add('oculto');
+        if (estado) estado.classList.remove('oculto');
       }
     }
 
@@ -1887,6 +1889,7 @@
     };
 
     async function cargarMiembros() {
+      if (!grupoActual) return;
       cargando('lista-miembros');
       const { data } = await db.from('grupos').select('miembros').eq('id', grupoActual.id).single();
       const miembros = data?.miembros || [];
@@ -2820,13 +2823,14 @@
 
     window.responderMensaje = (id, texto, autor) => {
       replyActual = { id, texto, autor };
-      // Mostrar preview del reply en el input
       let preview = $('reply-preview');
       if (!preview) {
         preview = document.createElement('div');
         preview.id = 'reply-preview';
         preview.className = 'reply-preview';
-        const wrap = document.querySelector('.chat-input-wrap');
+        // Buscar el wrap del chat grupal específicamente
+        const wrap = $('tab-chat')?.querySelector('.chat-input-wrap');
+        if (!wrap) return;
         wrap.insertBefore(preview, wrap.firstChild);
       }
       preview.innerHTML = `
