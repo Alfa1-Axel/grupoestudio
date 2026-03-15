@@ -1085,6 +1085,47 @@
     let grupoActual = null;
     let chatSub     = null;
 
+    // ── NAVEGACIÓN CON BOTÓN ATRÁS ──────────────────────────────
+    const historialPantallas = [];
+
+    // Sobrescribir ir() para registrar historial
+    const irOriginal = ir;
+    function ir(pantalla) {
+      const actual = document.querySelector('.pantalla:not(.oculto)');
+      if (actual && actual.id !== pantalla) {
+        historialPantallas.push(actual.id);
+        history.pushState({ pantalla: actual.id }, '');
+      }
+      irOriginal(pantalla);
+    }
+
+    window.addEventListener('popstate', (e) => {
+      const anterior = historialPantallas.pop();
+      if (anterior) {
+        // Limpiar subs según la pantalla que dejamos
+        const pantallaActual = document.querySelector('.pantalla:not(.oculto)')?.id;
+        if (pantallaActual === 'pantalla-grupo') {
+          if (chatSub)     chatSub.unsubscribe();
+          if (presenceSub) presenceSub.unsubscribe();
+          grupoActual = null;
+          onlineUsers = new Set();
+        }
+        if (pantallaActual === 'pantalla-dm') {
+          if (dmSub) { db.removeChannel(dmSub); dmSub = null; }
+          dmActual = null;
+        }
+        // Ir a la pantalla anterior sin pushear al historial
+        document.querySelectorAll('.pantalla').forEach(p => p.classList.add('oculto'));
+        const el = document.getElementById(anterior);
+        if (el) el.classList.remove('oculto');
+        // Si volvemos al foro detalle → lista
+        if (anterior === 'pantalla-foro') mostrarListaForo();
+      } else {
+        // No hay más historial — dejar que el browser cierre/minimice
+        history.back();
+      }
+    });
+
     // ── UTILIDADES ──────────────────────────────────────────────
 
     function ir(pantalla) {
