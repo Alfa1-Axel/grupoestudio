@@ -1817,16 +1817,18 @@ input:focus, select:focus, textarea:focus {
 .msg-quote-autor { display: block; font-size: 11px; font-weight: 600; color: var(--accent); }
 .msg-quote-texto { display: block; font-size: 12px; color: var(--muted2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
 
-/* Reply preview en input */
+/* Reply preview encima del input */
 .reply-preview {
   display: flex;
   align-items: center;
   gap: 8px;
   background: var(--surface2);
   border-left: 3px solid var(--accent);
-  padding: 6px 10px;
+  border-top: 1px solid var(--border);
+  padding: 6px 12px;
   font-size: 12px;
   width: 100%;
+  flex-shrink: 0;
 }
 .reply-inner { flex: 1; }
 .reply-autor { display: block; font-weight: 600; color: var(--accent); font-size: 11px; }
