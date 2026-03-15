@@ -1088,25 +1088,32 @@
     // ── NAVEGACIÓN CON BOTÓN ATRÁS ──────────────────────────────
     const historialPantallas = [];
 
-    // Sobrescribir ir() para registrar historial
-    const irOriginal = ir;
+    // Estado inicial en el historial para poder capturar el primer popstate
+    history.replaceState({ app: true, idx: 0 }, '');
+    let histIdx = 0;
+
     function ir(pantalla) {
       const actual = document.querySelector('.pantalla:not(.oculto)');
       if (actual && actual.id !== pantalla) {
         historialPantallas.push(actual.id);
-        history.pushState({ pantalla: actual.id }, '');
+        histIdx++;
+        history.pushState({ app: true, idx: histIdx }, '');
       }
-      irOriginal(pantalla);
+      // Mostrar pantalla
+      document.querySelectorAll('.pantalla').forEach(p => p.classList.add('oculto'));
+      const el = document.getElementById(pantalla);
+      if (el) el.classList.remove('oculto');
     }
 
     window.addEventListener('popstate', (e) => {
+      if (!e.state?.app) return;
       const anterior = historialPantallas.pop();
       if (anterior) {
-        // Limpiar subs según la pantalla que dejamos
+        // Limpiar subs según pantalla que abandonamos
         const pantallaActual = document.querySelector('.pantalla:not(.oculto)')?.id;
         if (pantallaActual === 'pantalla-grupo') {
-          if (chatSub)     chatSub.unsubscribe();
-          if (presenceSub) presenceSub.unsubscribe();
+          if (chatSub)     { chatSub.unsubscribe(); chatSub = null; }
+          if (presenceSub) { presenceSub.unsubscribe(); presenceSub = null; }
           grupoActual = null;
           onlineUsers = new Set();
         }
@@ -1114,21 +1121,21 @@
           if (dmSub) { db.removeChannel(dmSub); dmSub = null; }
           dmActual = null;
         }
-        // Ir a la pantalla anterior sin pushear al historial
+        // Mostrar pantalla anterior
         document.querySelectorAll('.pantalla').forEach(p => p.classList.add('oculto'));
         const el = document.getElementById(anterior);
         if (el) el.classList.remove('oculto');
-        // Si volvemos al foro detalle → lista
         if (anterior === 'pantalla-foro') mostrarListaForo();
+        if (anterior === 'pantalla-inicio') cargarGrupos();
       } else {
-        // No hay más historial — dejar que el browser cierre/minimice
-        history.back();
+        // Sin historial → pushear uno vacío para que el siguiente atrás minimice
+        history.pushState({ app: true, idx: 0 }, '');
       }
     });
 
     // ── UTILIDADES ──────────────────────────────────────────────
 
-    function ir(pantalla) {
+    function irSilencioso(pantalla) {
       document.querySelectorAll('.pantalla').forEach(p => p.classList.add('oculto'));
       $(pantalla).classList.remove('oculto');
     }
