@@ -1711,8 +1711,7 @@
     $('btn-ir-ranking').onclick = () => { ir('pantalla-ranking'); cargarRanking(); };
 
     async function cargarExplorar() {
-      const seccion = $('explorar-grupos');
-      if (!seccion) return;
+      if (!$('explorar-lista')) return;
       cargando('explorar-lista');
       const { data } = await db.from('grupos')
         .select('id,nombre,materia,creador,miembros,descripcion')
@@ -2339,6 +2338,10 @@
       $('resp-foto-preview').innerHTML = '';
       cargarRespuestas(preguntaActual.id);
     };
+
+  </script>
+
+  <script>
     // Registrar Service Worker (PWA)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
