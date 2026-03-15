@@ -136,6 +136,9 @@
           <input type="text" id="nuevo-nombre" placeholder="Nombre del grupo" />
           <input type="text" id="nuevo-materia" placeholder="Materia" />
         </div>
+        <div class="input-group">
+          <input type="text" id="nuevo-descripcion" placeholder="Descripción del grupo (opcional)" />
+        </div>
         <div class="privacidad-row" style="margin-bottom:12px">
           <div>
             <div class="privacidad-label">Grupo privado</div>
@@ -152,6 +155,13 @@
         </div>
       </div>
       <div id="lista-grupos"><p class="cargando">Cargando grupos...</p></div>
+
+      <div style="margin-top:28px">
+        <div class="page-header" style="margin-bottom:12px">
+          <div><h2>Explorar</h2><p class="page-sub">Grupos publicos disponibles</p></div>
+        </div>
+        <div id="explorar-lista"><p class="cargando">Cargando...</p></div>
+      </div>
     </div>
   </div>
 
@@ -170,6 +180,9 @@
       </div>
     </div>
 
+    <div id="grupo-descripcion-wrap">
+      <span id="grupo-descripcion" class="grupo-desc-text"></span>
+    </div>
     <div class="tabs">
       <button class="tab-btn activo" data-tab="chat">💬 Chat</button>
       <button class="tab-btn" data-tab="archivos">📂 Archivos</button>
@@ -453,6 +466,11 @@
       <div class="form-card" style="margin-top:16px" id="perfil-stats-card">
         <h3 style="margin-bottom:16px;font-family:var(--fhead)">⭐ Estadísticas</h3>
         <div id="perfil-stats">Cargando...</div>
+      </div>
+      <!-- Insignias -->
+      <div class="form-card" style="margin-top:16px" id="perfil-insignias-card">
+        <h3 style="margin-bottom:16px;font-family:var(--fhead)">🏅 Insignias</h3>
+        <div id="perfil-insignias">Cargando...</div>
       </div>
 
       <button class="btn" id="btn-guardar-perfil" style="width:100%;margin-top:16px">💾 Guardar cambios</button>
@@ -1068,6 +1086,7 @@
 
     async function sumarPuntos(cantidad) {
       await db.rpc('sumar_puntos', { usuario_id: usuario.id, cantidad });
+      verificarInsignias();
     }
 
     // ── SUBIR IMAGEN A CLOUDINARY ────────────────────────────────
@@ -1213,6 +1232,7 @@
       $('inicio-avatar').textContent = inicial;
       $('inicio-nombre').textContent = usuario.nombre;
       cargarGrupos();
+      cargarExplorar();
 
       // Escuchar cambios en grupos en tiempo real
       if (gruposSub) { db.removeChannel(gruposSub); gruposSub = null; }
@@ -1286,9 +1306,10 @@
       const materia = $('nuevo-materia').value.trim();
       if (!nombre || !materia) return alert('Completá nombre y materia');
 
-      const privado = $('nuevo-privado').checked;
+      const privado     = $('nuevo-privado').checked;
+      const descripcion = $('nuevo-descripcion').value.trim();
       const { error } = await db.from('grupos').insert({
-        nombre, materia,
+        nombre, materia, descripcion,
         creador:       usuario.nombre,
         creador_email: usuario.email,
         miembros:      [usuario.email],
@@ -1363,7 +1384,7 @@
     }
 
     // ── ENTRAR AL GRUPO ─────────────────────────────────────────
-    function entrarGrupo(id, nombre) {
+    async function entrarGrupo(id, nombre) {
       grupoActual = { id, nombre };
       if (chatSub) chatSub.unsubscribe();
 
@@ -1377,6 +1398,10 @@
       $('grupo-titulo').textContent         = nombre;
       $('grupo-avatar').textContent         = usuario.nombre[0].toUpperCase();
       $('grupo-nombre-usuario').textContent = usuario.nombre;
+      // Mostrar descripcion si existe
+      const { data: gData } = await db.from('grupos').select('descripcion').eq('id', id).single();
+      const descEl = $('grupo-descripcion');
+      if (descEl) descEl.textContent = gData?.descripcion || '';
 
       pedirPermisoNotificaciones();
       iniciarPresencia(id);
@@ -1409,7 +1434,7 @@
       $('tab-' + tab).classList.remove('oculto');
       if (tab === 'archivos')   cargarArchivos();
       if (tab === 'calendario') cargarEventos();
-      if (tab === 'miembros')   cargarMiembros();
+      if (tab === 'miembros')   { cargarMiembros(); cargarEstadisticasGrupo(); }
       if (tab === 'video') {
         // Resetear estado al entrar al tab
         $('video-iframe').src = '';
@@ -1493,6 +1518,27 @@
         ? new Date(m.hora).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
         : '';
 
+      // Quote reply
+      const quoteHtml = m.reply_a ? `
+        <div class="msg-quote" onclick="scrollAMensajeFijado('${m.reply_a}')">
+          <span class="msg-quote-autor">${m.reply_autor || ''}</span>
+          <span class="msg-quote-texto">${m.reply_texto || '📷 Imagen'}</span>
+        </div>` : '';
+
+      // Reacciones
+      const reacciones = m.reacciones || {};
+      const reaccionesHtml = Object.keys(reacciones).length > 0
+        ? `<div class="msg-reacciones">${Object.entries(reacciones).map(([emoji, usuarios]) =>
+            usuarios.length > 0 ? `<span class="reaccion ${usuarios.includes(miEmail) ? 'propia' : ''}"
+              onclick="toggleReaccion('${m.id}','${emoji}')">${emoji} ${usuarios.length}</span>` : ''
+          ).join('')}</div>` : '';
+
+      // Botón reaccionar (solo en hover)
+      const btnReaccion = `<div class="msg-actions">
+        <button class="btn-reaccion" onclick="mostrarPickerReaccion(event,'${m.id}')">😊</button>
+        <button class="btn-reaccion" onclick="responderMensaje('${m.id}','${(m.texto||'').replace(/'/g,"\'")}','${(m.autor||'').replace(/'/g,"\'")}')">↩</button>
+      </div>`;
+
       // Encuesta
       if (m.tipo === 'encuesta' && m.opciones) {
         const votos = m.votos || {};
@@ -1521,15 +1567,15 @@
         ? `<img src="${m.imagen_url}" class="msg-img" onclick="window.open('${m.imagen_url}','_blank')" />`
         : `<div class="texto">${m.texto}</div>`;
 
-      const esDuenioGrupo = grupoActual && usuario;
-      const menuFijar = esDuenioGrupo ? `<div class="msg-menu" onclick="toggleFijar('${m.id}',${!!m.fijado})">
-        ${m.fijado ? '📌 Desfijar' : '📌 Fijar'}
-      </div>` : '';
-
       return `<div class="mensaje ${esPropio ? 'propio' : 'otro'} ${m.fijado ? 'fijado' : ''}" data-id="${m.id}" oncontextmenu="mostrarMenuMensaje(event,'${m.id}',${!!m.fijado});return false;">
         ${!esPropio ? `<div class="autor">${m.autor}</div>` : ''}
+        ${quoteHtml}
         ${contenido}
-        <div class="hora">${hora}${m.fijado ? ' 📌' : ''}</div>
+        ${reaccionesHtml}
+        <div class="msg-footer">
+          <span class="hora">${hora}${m.fijado ? ' 📌' : ''}</span>
+          ${btnReaccion}
+        </div>
       </div>`;
     }
 
@@ -1935,6 +1981,24 @@
         if (uidEl) uidEl.textContent = perfilData.user_id;
       }
 
+      // Insignias
+      const { data: perfInsig } = await db.from('perfil_usuario').select('insignias').eq('id', usuario.id).single();
+      const insigEl = $('perfil-insignias');
+      if (insigEl) {
+        const insActuales = perfInsig?.insignias || [];
+        if (insActuales.length === 0) {
+          insigEl.innerHTML = '<p style="color:var(--muted);font-size:13px">Todavia no tenes insignias. ¡Participá para ganarlas!</p>';
+        } else {
+          insigEl.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:10px">` +
+            INSIGNIAS.filter(i => insActuales.includes(i.id)).map(i =>
+              `<div class="insignia-item" title="${i.nombre}">
+                <span style="font-size:28px">${i.emoji}</span>
+                <span style="font-size:11px;color:var(--muted2)">${i.nombre}</span>
+              </div>`
+            ).join('') + `</div>`;
+        }
+      }
+
       // Stats
       const { data: stats } = await db.from('perfil_usuario').select('puntos, nivel').eq('id', usuario.id).single();
       if (stats) {
@@ -2075,6 +2139,24 @@
           }
         }
         if (uidEl) uidEl.textContent = perfilData.user_id;
+      }
+
+      // Insignias
+      const { data: perfInsig } = await db.from('perfil_usuario').select('insignias').eq('id', usuario.id).single();
+      const insigEl = $('perfil-insignias');
+      if (insigEl) {
+        const insActuales = perfInsig?.insignias || [];
+        if (insActuales.length === 0) {
+          insigEl.innerHTML = '<p style="color:var(--muted);font-size:13px">Todavia no tenes insignias. ¡Participá para ganarlas!</p>';
+        } else {
+          insigEl.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:10px">` +
+            INSIGNIAS.filter(i => insActuales.includes(i.id)).map(i =>
+              `<div class="insignia-item" title="${i.nombre}">
+                <span style="font-size:28px">${i.emoji}</span>
+                <span style="font-size:11px;color:var(--muted2)">${i.nombre}</span>
+              </div>`
+            ).join('') + `</div>`;
+        }
       }
 
       // Stats
@@ -2701,6 +2783,166 @@
       ir('pantalla-inicio');
       cargarGrupos();
     };
+
+    // ── REACCIONES ───────────────────────────────────────────────
+    const EMOJIS_REACCION = ['👍','❤️','😂','😮','😢','🔥'];
+    let pickerAbierto = null;
+
+    window.mostrarPickerReaccion = (e, msgId) => {
+      e.stopPropagation();
+      // Cerrar picker anterior
+      document.querySelectorAll('.emoji-picker').forEach(p => p.remove());
+      const picker = document.createElement('div');
+      picker.className = 'emoji-picker';
+      picker.innerHTML = EMOJIS_REACCION.map(em =>
+        `<span onclick="toggleReaccion('${msgId}','${em}');this.closest('.emoji-picker').remove()">${em}</span>`
+      ).join('');
+      const btn = e.currentTarget || e.target;
+      const rect = btn.getBoundingClientRect();
+      picker.style.top  = (rect.top - 50) + 'px';
+      picker.style.left = (rect.left - 60) + 'px';
+      document.body.appendChild(picker);
+      setTimeout(() => document.addEventListener('click', () => picker.remove(), { once: true }), 50);
+    };
+
+    window.toggleReaccion = async (msgId, emoji) => {
+      const { data: msg } = await db.from('mensajes').select('reacciones').eq('id', msgId).single();
+      const reacs = msg?.reacciones || {};
+      if (!reacs[emoji]) reacs[emoji] = [];
+      const idx = reacs[emoji].indexOf(usuario.email);
+      if (idx >= 0) reacs[emoji].splice(idx, 1);
+      else reacs[emoji].push(usuario.email);
+      await db.from('mensajes').update({ reacciones: reacs }).eq('id', msgId);
+    };
+
+    // ── QUOTE REPLY ──────────────────────────────────────────────
+    let replyActual = null;
+
+    window.responderMensaje = (id, texto, autor) => {
+      replyActual = { id, texto, autor };
+      // Mostrar preview del reply en el input
+      let preview = $('reply-preview');
+      if (!preview) {
+        preview = document.createElement('div');
+        preview.id = 'reply-preview';
+        preview.className = 'reply-preview';
+        const wrap = document.querySelector('.chat-input-wrap');
+        wrap.insertBefore(preview, wrap.firstChild);
+      }
+      preview.innerHTML = `
+        <div class="reply-inner">
+          <span class="reply-autor">${autor}</span>
+          <span class="reply-texto">${texto.slice(0,60)}${texto.length>60?'...':''}</span>
+        </div>
+        <button onclick="cancelarReply()" class="reply-cancel">✕</button>`;
+      $('msg-input').focus();
+    };
+
+    window.cancelarReply = () => {
+      replyActual = null;
+      const p = $('reply-preview');
+      if (p) p.remove();
+    };
+
+    // Modificar enviarMensaje para incluir reply
+    const enviarMensajeOriginal = enviarMensaje;
+    enviarMensaje = async function() {
+      const texto = $('msg-input').value.trim();
+      if (!texto || !grupoActual) return;
+      $('msg-input').value = '';
+      $('msg-input').focus();
+      const extra = replyActual ? { reply_a: replyActual.id, reply_texto: replyActual.texto.slice(0,100), reply_autor: replyActual.autor } : {};
+      cancelarReply();
+      db.from('mensajes').insert({
+        grupo_id: grupoActual.id, autor: usuario.nombre, email: usuario.email, texto, ...extra
+      }).then(({ error }) => {
+        if (error) console.error(error);
+        else sumarPuntos(2);
+      });
+    };
+
+    // ── ESTADÍSTICAS DEL GRUPO ───────────────────────────────────
+    async function cargarEstadisticasGrupo() {
+      if (!grupoActual) return;
+      const [rMsg, rArch, rMiembros] = await Promise.all([
+        db.from('mensajes').select('*', { count: 'exact', head: true }).eq('grupo_id', grupoActual.id),
+        db.from('archivos').select('*', { count: 'exact', head: true }).eq('grupo_id', grupoActual.id),
+        db.from('grupos').select('miembros').eq('id', grupoActual.id).single()
+      ]);
+      const stats = {
+        mensajes: rMsg.count || 0,
+        archivos: rArch.count || 0,
+        miembros: rMiembros.data?.miembros?.length || 0
+      };
+      const el = $('tab-miembros');
+      if (!el) return;
+      let statsEl = document.getElementById('grupo-stats');
+      if (!statsEl) {
+        statsEl = document.createElement('div');
+        statsEl.id = 'grupo-stats';
+        statsEl.className = 'grupo-stats-wrap';
+        el.querySelector('.tab-inner')?.prepend(statsEl);
+      }
+      statsEl.innerHTML = `
+        <div class="stats-grid" style="margin-bottom:16px">
+          <div class="stat-item"><span class="stat-val">${stats.mensajes}</span><span class="stat-label">Mensajes</span></div>
+          <div class="stat-item"><span class="stat-val">${stats.archivos}</span><span class="stat-label">Archivos</span></div>
+          <div class="stat-item"><span class="stat-val">${stats.miembros}</span><span class="stat-label">Miembros</span></div>
+        </div>`;
+    }
+
+    // ── INSIGNIAS ────────────────────────────────────────────────
+    const INSIGNIAS = [
+      { id: 'primer_mensaje',  emoji: '💬', nombre: 'Primer mensaje',    condicion: (p) => p.mensajes_enviados >= 1 },
+      { id: 'comunicador',     emoji: '📢', nombre: 'Comunicador',       condicion: (p) => p.mensajes_enviados >= 100 },
+      { id: 'archivero',       emoji: '📂', nombre: 'Archivero',         condicion: (p) => p.archivos_subidos >= 5 },
+      { id: 'sabio',           emoji: '🧠', nombre: 'Sabio',             condicion: (p) => p.respuestas_correctas >= 3 },
+      { id: 'nivel_3',         emoji: '🎓', nombre: 'Avanzado',          condicion: (p) => (p.puntos||0) >= 6200 },
+      { id: 'nivel_5',         emoji: '🏆', nombre: 'Maestro',           condicion: (p) => (p.puntos||0) >= 15000 },
+      { id: 'leyenda',         emoji: '👑', nombre: 'Leyenda',           condicion: (p) => (p.puntos||0) >= 25000 },
+    ];
+
+    async function verificarInsignias() {
+      const { data: perfil } = await db.from('perfil_usuario').select('*').eq('id', usuario.id).single();
+      if (!perfil) return;
+      const actuales = perfil.insignias || [];
+      const nuevas = INSIGNIAS.filter(ins => !actuales.includes(ins.id) && ins.condicion(perfil));
+      if (nuevas.length > 0) {
+        const todas = [...actuales, ...nuevas.map(i => i.id)];
+        await db.from('perfil_usuario').update({ insignias: todas }).eq('id', usuario.id);
+        nuevas.forEach(ins => mostrarToast(`🏅 Nueva insignia: ${ins.emoji} ${ins.nombre}`, 'Felicitaciones!'));
+      }
+    }
+
+    // ── EXPLORAR GRUPOS PÚBLICOS ─────────────────────────────────
+    $('btn-ir-ranking').onclick = () => { ir('pantalla-ranking'); cargarRanking(); };
+
+    async function cargarExplorar() {
+      const seccion = $('explorar-grupos');
+      if (!seccion) return;
+      cargando('explorar-lista');
+      const { data } = await db.from('grupos')
+        .select('id,nombre,materia,creador,miembros,descripcion')
+        .eq('privado', false)
+        .order('creado_el', { ascending: false })
+        .limit(20);
+
+      if (!data || data.length === 0) { vacio('explorar-lista', '🔍', 'No hay grupos publicos.'); return; }
+
+      $('explorar-lista').innerHTML = data.map(g => {
+        const esMiembro = g.miembros?.includes(usuario.email);
+        return `<div class="grupo-card">
+          <div class="grupo-info">
+            <h3>📘 ${g.nombre}</h3>
+            <p>${g.materia} · ${g.miembros?.length || 0} miembros · ${g.creador}</p>
+            ${g.descripcion ? `<p style="color:var(--muted);font-size:11px;margin-top:2px">${g.descripcion}</p>` : ''}
+          </div>
+          ${esMiembro
+            ? `<span class="tag" onclick="entrarGrupo('${g.id}','${g.nombre}')">Entrar →</span>`
+            : `<span class="tag" onclick="unirseYEntrar('${g.id}','${g.nombre}')">+ Unirse</span>`}
+        </div>`;
+      }).join('');
+    }
 
     // ── MODO CLARO/OSCURO ────────────────────────────────────────
     let temaOscuro = localStorage.getItem('tema') !== 'claro';
