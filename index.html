@@ -1204,12 +1204,35 @@
     $('btn-salir').onclick = () => db.auth.signOut();
 
     // ── INICIO ──────────────────────────────────────────────────
+    let gruposSub = null;
+
     async function cargarInicio() {
       ir('pantalla-inicio');
       const inicial = usuario.nombre[0].toUpperCase();
       $('inicio-avatar').textContent = inicial;
       $('inicio-nombre').textContent = usuario.nombre;
       cargarGrupos();
+
+      // Escuchar cambios en grupos en tiempo real
+      if (gruposSub) { db.removeChannel(gruposSub); gruposSub = null; }
+      gruposSub = db.channel('grupos-realtime-' + usuario.id)
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'grupos'
+        }, payload => {
+          const m = payload.new;
+          if (!m) { cargarGrupos(); return; }
+          // Si soy miembro recargo
+          if (Array.isArray(m.miembros) && m.miembros.includes(usuario.email)) {
+            cargarGrupos();
+            // Notificar si me acaban de agregar
+            const anterior = payload.old;
+            if (anterior && Array.isArray(anterior.miembros) && !anterior.miembros.includes(usuario.email)) {
+              mostrarToast('👥 Nuevo grupo', `Fuiste añadido a "${m.nombre}"`);
+              actualizarBadgeNotif();
+            }
+          }
+        })
+        .subscribe();
     }
 
     // ── GRUPOS ──────────────────────────────────────────────────
