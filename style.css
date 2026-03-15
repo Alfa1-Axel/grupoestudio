@@ -27,20 +27,21 @@
 body.light {
   --bg:       #f0f4ff;
   --surface:  #ffffff;
-  --surface2: #e8eef8;
-  --border:   #d0d9ee;
-  --border2:  #b8c5e0;
-  --accent:   #2563eb;
-  --accent2:  #6d44e8;
-  --green:    #059669;
-  --red:      #dc2626;
-  --text:     #0f172a;
-  --muted:    #64748b;
-  --muted2:   #475569;
-  --topbar-bg: rgba(240,244,255,0.95);
-  --input-bg:  #ffffff;
-  --shadow:    rgba(0,0,0,0.1);
+  --surface2: #e8edf8;
+  --border:   #d0d8ee;
+  --border2:  #b8c4e0;
+  --text:     #0f1624;
+  --muted:    #7a8aa8;
+  --muted2:   #556080;
+  --accent:   #3b7ef5;
+  --accent2:  #6b5af5;
+  --green:    #16a87e;
+  --red:      #e04444;
 }
+body.light .topbar { background: rgba(240,244,255,0.95); }
+body.light .mensaje.otro { background: #e8edf8; border-color: #d0d8ee; }
+body.light .nav-mobile { background: rgba(240,244,255,0.98); }
+body.light .auth-card { box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
 
 body.light .blob-1 {
   background: radial-gradient(circle, rgba(37,99,235,0.08), transparent 70%);
@@ -2010,3 +2011,22 @@ body.light .toggle-slider {
   flex-shrink: 0;
 }
 .theme-toggle:hover { border-color: var(--accent); }
+// ── GESTIÓN DEL TEMA (MODO OSCURO/CLARO) ──
+// 1. Aplicar el tema guardado al instante de cargar la página
+const temaGuardado = localStorage.getItem('temaPreferido');
+if (temaGuardado === 'light') {
+  document.body.classList.add('light');
+}
+
+// 2. Función para el botón que cambia el tema
+function cambiarTema() {
+  // Alterna la clase 'light' en el body
+  document.body.classList.toggle('light');
+  
+  // Verifica si la clase está activa y guarda en localStorage
+  if (document.body.classList.contains('light')) {
+    localStorage.setItem('temaPreferido', 'light');
+  } else {
+    localStorage.setItem('temaPreferido', 'dark');
+  }
+}

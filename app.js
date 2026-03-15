@@ -1,3 +1,22 @@
+// ── GESTIÓN DEL TEMA (MODO OSCURO/CLARO) ──
+// Revisamos si el usuario ya había elegido el modo claro antes
+const temaGuardado = localStorage.getItem('temaPreferido');
+if (temaGuardado === 'light') {
+  document.body.classList.add('light');
+}
+
+// Función para alternar el tema y guardarlo
+function cambiarTema() {
+  document.body.classList.toggle('light');
+  
+  if (document.body.classList.contains('light')) {
+    localStorage.setItem('temaPreferido', 'light');
+  } else {
+    localStorage.setItem('temaPreferido', 'dark'); // dark es el default
+  }
+}
+
+// ── AUTENTICACIÓN Y SESIÓN ──
 // Guardamos usuarios en el navegador (por ahora sin servidor)
 let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
 let usuarioActual = JSON.parse(localStorage.getItem('usuarioActual')) || null;
@@ -53,6 +72,7 @@ function cerrarSesion() {
   mostrarLogin();
 }
 
+// ── NAVEGACIÓN DE PANTALLAS ──
 function mostrarInicio() {
   ocultar('pantalla-login');
   ocultar('pantalla-registro');
@@ -79,6 +99,7 @@ function mostrar(id) {
 function ocultar(id) {
   document.getElementById(id).classList.add('oculto');
 }
+
 // ── GRUPOS ──────────────────────────────────────────────────────
 let grupos = JSON.parse(localStorage.getItem('grupos')) || [];
 
@@ -138,6 +159,8 @@ function renderizarGrupos() {
     </div>
   `).join('');
 }
+
+// ── CHAT DE GRUPO ──
 let grupoActual = null;
 
 function entrarGrupo(id) {
@@ -195,7 +218,7 @@ function renderizarMensajes() {
     const esPropio = m.email === usuarioActual.email;
     return `
       <div class="mensaje ${esPropio ? 'propio' : 'otro'}">
-        ${!esPropio ? `<div class="autor">${m.autor}</div>` : ''}
+        ${!esPropio ? <div class="autor">${m.autor}</div> : ''}
         ${m.texto}
         <div class="hora">${m.hora}</div>
       </div>
