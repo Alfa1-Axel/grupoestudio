@@ -2338,10 +2338,6 @@
       $('resp-foto-preview').innerHTML = '';
       cargarRespuestas(preguntaActual.id);
     };
-
-  </script>
-
-  <script>
     // Registrar Service Worker (PWA)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
