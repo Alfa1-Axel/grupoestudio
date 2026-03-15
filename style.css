@@ -2011,22 +2011,3 @@ body.light .toggle-slider {
   flex-shrink: 0;
 }
 .theme-toggle:hover { border-color: var(--accent); }
-// ── GESTIÓN DEL TEMA (MODO OSCURO/CLARO) ──
-// 1. Aplicar el tema guardado al instante de cargar la página
-const temaGuardado = localStorage.getItem('temaPreferido');
-if (temaGuardado === 'light') {
-  document.body.classList.add('light');
-}
-
-// 2. Función para el botón que cambia el tema
-function cambiarTema() {
-  // Alterna la clase 'light' en el body
-  document.body.classList.toggle('light');
-  
-  // Verifica si la clase está activa y guarda en localStorage
-  if (document.body.classList.contains('light')) {
-    localStorage.setItem('temaPreferido', 'light');
-  } else {
-    localStorage.setItem('temaPreferido', 'dark');
-  }
-}
