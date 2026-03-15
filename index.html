@@ -94,6 +94,7 @@
           <div class="avatar-sm" id="inicio-avatar"></div>
           <span id="inicio-nombre"></span>
         </div>
+        <button class="theme-toggle" id="btn-theme">🌙</button>
         <button class="btn btn-ghost btn-sm" id="btn-salir">Salir</button>
       </div>
     </div>
@@ -196,6 +197,7 @@
       <div id="mensaje-fijado-banner" class="oculto"></div>
       <div class="mensajes" id="mensajes"></div>
       <button id="btn-scroll-abajo" class="btn-scroll-abajo oculto">↓</button>
+      <div id="reply-preview" class="reply-preview oculto"></div>
       <div class="chat-input-wrap">
         <label class="btn-foto-chat" title="Enviar foto">
           📷
@@ -2823,16 +2825,9 @@
 
     window.responderMensaje = (id, texto, autor) => {
       replyActual = { id, texto, autor };
-      let preview = $('reply-preview');
-      if (!preview) {
-        preview = document.createElement('div');
-        preview.id = 'reply-preview';
-        preview.className = 'reply-preview';
-        // Buscar el wrap del chat grupal específicamente
-        const wrap = $('tab-chat')?.querySelector('.chat-input-wrap');
-        if (!wrap) return;
-        wrap.insertBefore(preview, wrap.firstChild);
-      }
+      const preview = $('reply-preview');
+      if (!preview) return;
+      preview.classList.remove('oculto');
       preview.innerHTML = `
         <div class="reply-inner">
           <span class="reply-autor">${autor}</span>
@@ -2845,7 +2840,7 @@
     window.cancelarReply = () => {
       replyActual = null;
       const p = $('reply-preview');
-      if (p) p.remove();
+      if (p) { p.classList.add('oculto'); p.innerHTML = ''; }
     };
 
     // Modificar enviarMensaje para incluir reply
@@ -3084,6 +3079,27 @@
     }
 
     setupNavMobile();
+
+    // ── MODO CLARO/OSCURO ────────────────────────────────────────
+    function aplicarTema(modo) {
+      if (modo === 'light') {
+        document.body.classList.add('light');
+        $('btn-theme').textContent = '☀️';
+      } else {
+        document.body.classList.remove('light');
+        $('btn-theme').textContent = '🌙';
+      }
+      localStorage.setItem('tema', modo);
+    }
+
+    $('btn-theme').onclick = () => {
+      const actual = document.body.classList.contains('light') ? 'light' : 'dark';
+      aplicarTema(actual === 'light' ? 'dark' : 'light');
+    };
+
+    // Aplicar tema guardado
+    const temaGuardado = localStorage.getItem('tema') || 'dark';
+    aplicarTema(temaGuardado);
     $('btn-volver-ranking').onclick = () => ir('pantalla-inicio');
 
     async function cargarRanking() {

@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
-/* ── VARIABLES ── */
+/* ── MODO OSCURO (default) ── */
 :root {
   --bg:       #07090f;
   --surface:  #0d1117;
@@ -14,10 +14,39 @@
   --text:     #e8edf5;
   --muted:    #5a6a80;
   --muted2:   #8899aa;
+  --topbar-bg: rgba(7,9,15,0.92);
+  --input-bg:  #111827;
+  --shadow:    rgba(0,0,0,0.4);
   --fhead:    'Syne', sans-serif;
   --fbody:    'DM Sans', sans-serif;
   --r:        12px;
   --rlg:      18px;
+}
+
+/* ── MODO CLARO ── */
+body.light {
+  --bg:       #f0f4ff;
+  --surface:  #ffffff;
+  --surface2: #e8eef8;
+  --border:   #d0d9ee;
+  --border2:  #b8c5e0;
+  --accent:   #2563eb;
+  --accent2:  #6d44e8;
+  --green:    #059669;
+  --red:      #dc2626;
+  --text:     #0f172a;
+  --muted:    #64748b;
+  --muted2:   #475569;
+  --topbar-bg: rgba(240,244,255,0.95);
+  --input-bg:  #ffffff;
+  --shadow:    rgba(0,0,0,0.1);
+}
+
+body.light .blob-1 {
+  background: radial-gradient(circle, rgba(37,99,235,0.08), transparent 70%);
+}
+body.light .blob-2 {
+  background: radial-gradient(circle, rgba(109,68,232,0.06), transparent 70%);
 }
 
 /* ── RESET ── */
@@ -527,7 +556,7 @@ select option { background: var(--surface2); }
   display: flex;
   gap: 10px;
   padding: 12px 20px;
-  background: rgba(7,9,15,0.92);
+  background: var(--topbar-bg);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
   width: 100%;
@@ -1920,3 +1949,64 @@ input:focus, select:focus, textarea:focus {
   .msg-actions { display: flex; } /* Siempre visible en móvil */
   .emoji-picker { bottom: 80px; top: auto !important; left: 50% !important; transform: translateX(-50%); }
 }
+
+/* ── Modo claro: ajustes específicos ── */
+body.light .auth-card,
+body.light .form-card,
+body.light .grupo-card,
+body.light .pregunta-card,
+body.light .pregunta-detalle,
+body.light .respuesta-card,
+body.light .tutor-card,
+body.light .solicitud-card,
+body.light .ranking-item,
+body.light .miembro-item,
+body.light .conv-item,
+body.light .search-item,
+body.light .evento-card,
+body.light .archivo-item {
+  box-shadow: 0 2px 12px var(--shadow);
+}
+
+body.light input,
+body.light select,
+body.light textarea {
+  background: var(--input-bg);
+  color: var(--text);
+}
+
+body.light .nav-mobile {
+  border-top-color: var(--border);
+  background: var(--topbar-bg);
+}
+
+body.light .topbar {
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 8px var(--shadow);
+}
+
+body.light .mensaje.otro {
+  background: #e8eef8;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+body.light .toggle-slider {
+  background: #cbd5e1;
+  border-color: #94a3b8;
+}
+
+/* Toggle modo claro/oscuro */
+.theme-toggle {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text);
+  font-family: var(--fbody);
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.theme-toggle:hover { border-color: var(--accent); }
