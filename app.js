@@ -366,6 +366,7 @@
       $('grupo-avatar').textContent         = usuario.nombre[0].toUpperCase();
       $('grupo-nombre-usuario').textContent = usuario.nombre;
       // Mostrar descripcion si existe
+      if (!id) return;
       const { data: gData } = await db.from('grupos').select('descripcion').eq('id', id).single();
       const descEl = $('grupo-descripcion');
       if (descEl) descEl.textContent = gData?.descripcion || '';
@@ -753,6 +754,7 @@
     };
 
     async function cargarArchivos() {
+      if (!grupoActual?.id) return;
       cargando('lista-archivos');
       const { data } = await db
         .from('archivos')
@@ -808,6 +810,7 @@
     };
 
     async function cargarEventos() {
+      if (!grupoActual?.id) return;
       cargando('lista-eventos');
       const { data } = await db
         .from('eventos')
@@ -860,7 +863,7 @@
     };
 
     async function cargarMiembros() {
-      if (!grupoActual) return;
+      if (!grupoActual?.id) return;
       cargando('lista-miembros');
       const { data } = await db.from('grupos').select('miembros').eq('id', grupoActual.id).single();
       const miembros = data?.miembros || [];
@@ -1411,7 +1414,13 @@
         const grupoId  = localStorage.getItem('grupo_actual_id');
         const grupoNombre = localStorage.getItem('grupo_actual_nombre');
 
-        if (pantalla === 'pantalla-grupo' && grupoId && grupoId !== 'undefined' && grupoNombre) {
+        // Limpiar valores corruptos
+        if (!grupoId || grupoId === 'undefined' || !grupoNombre || grupoNombre === 'undefined') {
+          localStorage.removeItem('grupo_actual_id');
+          localStorage.removeItem('grupo_actual_nombre');
+        }
+
+        if (pantalla === 'pantalla-grupo' && grupoId && grupoId !== 'undefined' && grupoNombre && grupoNombre !== 'undefined') {
           await entrarGrupo(grupoId, grupoNombre);
         } else if (pantalla === 'pantalla-foro') {
           ir('pantalla-foro');
