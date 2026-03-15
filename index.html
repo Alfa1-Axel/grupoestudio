@@ -79,7 +79,7 @@
       <div class="topbar-brand"><div class="brand-icon"><img src="/icons/icon-192.png" alt="logo" /></div> GrupoEstudio</div>
       <div class="topbar-right">
         <button class="btn btn-ghost btn-sm" id="btn-buscar">🔍</button>
-        <button class="theme-toggle" id="temalima" >🌙</button>
+        <button class="btn btn-ghost btn-sm" id="btn-tema" title="Cambiar tema">🌙</button>
         <button class="btn-notif" id="btn-notificaciones">
           🔔
           <span id="notif-badge" class="badge-noread oculto">0</span>
@@ -2942,6 +2942,18 @@
       }).join('');
     }
 
+    // ── MODO CLARO/OSCURO ────────────────────────────────────────
+    let temaOscuro = localStorage.getItem('tema') !== 'claro';
+
+    function aplicarTema() {
+      document.documentElement.setAttribute('data-tema', temaOscuro ? 'oscuro' : 'claro');
+      $('btn-tema').textContent = temaOscuro ? '🌙' : '☀️';
+      localStorage.setItem('tema', temaOscuro ? 'oscuro' : 'claro');
+    }
+
+    $('btn-tema').onclick = () => { temaOscuro = !temaOscuro; aplicarTema(); };
+    aplicarTema();
+
     // ── COMPARTIR GRUPO ───────────────────────────────────────────
     $('btn-compartir-grupo').onclick = () => {
       const link = `${location.origin}?unirse=${grupoActual.id}`;
@@ -3068,6 +3080,35 @@
     setupNavMobile();
 
 
+    $('btn-volver-ranking').onclick = () => ir('pantalla-inicio');
+
+    async function cargarRanking() {
+      cargando('lista-ranking');
+      const { data } = await db
+        .from('perfil_usuario')
+        .select('nombre, email, puntos, nivel, avatar_url')
+        .order('puntos', { ascending: false })
+        .limit(20);
+
+      if (!data || data.length === 0) { vacio('lista-ranking', '🏆', 'Todavía no hay puntuaciones.'); return; }
+
+      const medallas = ['🥇', '🥈', '🥉'];
+      $('lista-ranking').innerHTML = data.map((p, i) => {
+        const niv    = getNivel(p.puntos);
+        const avatar = p.avatar_url
+          ? `<img src="${p.avatar_url}" style="width:40px;height:40px;border-radius:50%;object-fit:cover" />`
+          : `<div class="ranking-avatar">${(p.nombre||'?')[0].toUpperCase()}</div>`;
+        return `<div class="ranking-item ${p.email === usuario.email ? 'ranking-yo' : ''}">
+          <span class="ranking-pos">${medallas[i] || (i+1)}</span>
+          ${avatar}
+          <div class="ranking-datos">
+            <span class="ranking-nombre">${p.nombre} ${p.email === usuario.email ? '<span class="badge-vos">Vos</span>' : ''}</span>
+            <span class="ranking-nivel">${niv.emoji} ${niv.nombre}</span>
+          </div>
+          <span class="ranking-pts">${p.puntos} pts</span>
+        </div>`;
+      }).join('');
+    }
 
     // ── MENSAJES PRIVADOS ────────────────────────────────────────
     let dmSub        = null;
@@ -3516,6 +3557,5 @@
         .catch(err => console.log('SW error:', err));
     }
   </script>
-  <script src="app.js"></script>
 </body>
 </html>

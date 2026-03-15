@@ -24,30 +24,76 @@
 }
 
 /* ── MODO CLARO ── */
-body.light {
-  --bg:       #f0f4ff;
-  --surface:  #ffffff;
-  --surface2: #e8edf8;
-  --border:   #d0d8ee;
-  --border2:  #b8c4e0;
-  --text:     #0f1624;
-  --muted:    #7a8aa8;
-  --muted2:   #556080;
-  --accent:   #3b7ef5;
-  --accent2:  #6b5af5;
-  --green:    #16a87e;
-  --red:      #e04444;
+[data-tema="claro"] {
+  --bg:        #f0f4ff;
+  --surface:   #ffffff;
+  --surface2:  #e8eef8;
+  --border:    #d0d9ee;
+  --border2:   #b8c5e0;
+  --accent:    #2563eb;
+  --accent2:   #6d44e8;
+  --green:     #059669;
+  --red:       #dc2626;
+  --text:      #0f172a;
+  --muted:     #64748b;
+  --muted2:    #475569;
+  --topbar-bg: rgba(240,244,255,0.96);
+  --input-bg:  #ffffff;
+  --shadow:    rgba(0,0,0,0.08);
 }
-body.light .topbar { background: rgba(240,244,255,0.95); }
-body.light .mensaje.otro { background: #e8edf8; border-color: #d0d8ee; }
-body.light .nav-mobile { background: rgba(240,244,255,0.98); }
-body.light .auth-card { box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
 
-body.light .blob-1 {
-  background: radial-gradient(circle, rgba(37,99,235,0.08), transparent 70%);
+[data-tema="claro"] body { background: var(--bg); }
+
+[data-tema="claro"] .blob-1 {
+  background: radial-gradient(circle, rgba(37,99,235,0.07), transparent 70%);
 }
-body.light .blob-2 {
-  background: radial-gradient(circle, rgba(109,68,232,0.06), transparent 70%);
+[data-tema="claro"] .blob-2 {
+  background: radial-gradient(circle, rgba(109,68,232,0.05), transparent 70%);
+}
+
+[data-tema="claro"] .topbar {
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 8px var(--shadow);
+}
+
+[data-tema="claro"] .nav-mobile {
+  background: rgba(240,244,255,0.98);
+  border-top-color: var(--border);
+}
+
+[data-tema="claro"] input,
+[data-tema="claro"] select,
+[data-tema="claro"] textarea {
+  background: var(--input-bg);
+  color: var(--text);
+}
+
+[data-tema="claro"] .mensaje.otro {
+  background: #e2e8f8;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+[data-tema="claro"] .auth-card,
+[data-tema="claro"] .form-card,
+[data-tema="claro"] .grupo-card,
+[data-tema="claro"] .pregunta-card,
+[data-tema="claro"] .respuesta-card,
+[data-tema="claro"] .tutor-card,
+[data-tema="claro"] .solicitud-card,
+[data-tema="claro"] .ranking-item,
+[data-tema="claro"] .miembro-item,
+[data-tema="claro"] .conv-item,
+[data-tema="claro"] .search-item,
+[data-tema="claro"] .evento-card,
+[data-tema="claro"] .archivo-item,
+[data-tema="claro"] .pregunta-detalle {
+  box-shadow: 0 2px 12px var(--shadow);
+}
+
+[data-tema="claro"] .toggle-slider {
+  background: #cbd5e1;
+  border-color: #94a3b8;
 }
 
 /* ── RESET ── */
@@ -1704,28 +1750,6 @@ input:focus, select:focus, textarea:focus {
 /* ════════════════════════════════════════
    MODO CLARO
 ════════════════════════════════════════ */
-[data-tema="claro"] {
-  --bg:       #f0f4ff;
-  --surface:  #ffffff;
-  --surface2: #e8edf8;
-  --border:   #d0d8ee;
-  --border2:  #b8c4e0;
-  --text:     #0f1624;
-  --muted:    #7a8aa8;
-  --muted2:   #556080;
-  --accent:   #3b7ef5;
-  --accent2:  #6b5af5;
-  --green:    #16a87e;
-  --red:      #e04444;
-}
-[data-tema="claro"] body { background: var(--bg); }
-[data-tema="claro"] .topbar { background: rgba(240,244,255,0.95); }
-[data-tema="claro"] .blob-1 { background: radial-gradient(circle, rgba(59,126,245,0.08), transparent 70%); }
-[data-tema="claro"] .blob-2 { background: radial-gradient(circle, rgba(107,90,245,0.06), transparent 70%); }
-[data-tema="claro"] .mensaje.otro { background: #e8edf8; border-color: #d0d8ee; }
-[data-tema="claro"] .nav-mobile { background: rgba(240,244,255,0.98); }
-[data-tema="claro"] .auth-card { box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
-
 /* ════════════════════════════════════════
    ENCUESTAS
 ════════════════════════════════════════ */
@@ -1951,53 +1975,6 @@ input:focus, select:focus, textarea:focus {
   .emoji-picker { bottom: 80px; top: auto !important; left: 50% !important; transform: translateX(-50%); }
 }
 
-/* ── Modo claro: ajustes específicos ── */
-body.light .auth-card,
-body.light .form-card,
-body.light .grupo-card,
-body.light .pregunta-card,
-body.light .pregunta-detalle,
-body.light .respuesta-card,
-body.light .tutor-card,
-body.light .solicitud-card,
-body.light .ranking-item,
-body.light .miembro-item,
-body.light .conv-item,
-body.light .search-item,
-body.light .evento-card,
-body.light .archivo-item {
-  box-shadow: 0 2px 12px var(--shadow);
-}
-
-body.light input,
-body.light select,
-body.light textarea {
-  background: var(--input-bg);
-  color: var(--text);
-}
-
-body.light .nav-mobile {
-  border-top-color: var(--border);
-  background: var(--topbar-bg);
-}
-
-body.light .topbar {
-  border-bottom: 1px solid var(--border);
-  box-shadow: 0 1px 8px var(--shadow);
-}
-
-body.light .mensaje.otro {
-  background: #e8eef8;
-  border-color: var(--border);
-  color: var(--text);
-}
-
-body.light .toggle-slider {
-  background: #cbd5e1;
-  border-color: #94a3b8;
-}
-
-/* Toggle modo claro/oscuro */
 .theme-toggle {
   background: var(--surface2);
   border: 1px solid var(--border2);

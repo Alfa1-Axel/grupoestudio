@@ -1,4 +1,4 @@
-const btnTema = document.getElementById('temalima');
+const btnTema = document.getElementById('btn-tema');
 
 function aplicarTema(modo) {
   if (modo === 'claro') {
