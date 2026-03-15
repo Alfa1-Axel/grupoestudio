@@ -2942,18 +2942,6 @@
       }).join('');
     }
 
-    // ── MODO CLARO/OSCURO ────────────────────────────────────────
-    let temaOscuro = localStorage.getItem('tema') !== 'claro';
-
-    function aplicarTema() {
-      document.documentElement.setAttribute('data-tema', temaOscuro ? 'oscuro' : 'claro');
-      $('btn-tema').textContent = temaOscuro ? '🌙' : '☀️';
-      localStorage.setItem('tema', temaOscuro ? 'oscuro' : 'claro');
-    }
-
-    $('btn-tema').onclick = () => { temaOscuro = !temaOscuro; aplicarTema(); };
-    aplicarTema();
-
     // ── COMPARTIR GRUPO ───────────────────────────────────────────
     $('btn-compartir-grupo').onclick = () => {
       const link = `${location.origin}?unirse=${grupoActual.id}`;
@@ -3576,5 +3564,6 @@
         .catch(err => console.log('SW error:', err));
     }
   </script>
+  <script src="app.js"></script>
 </body>
 </html>
