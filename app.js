@@ -16,6 +16,7 @@ function aplicarTema(modo) {
 if (btnTema) {
   btnTema.onclick = () => {
     const esClaro = document.body.classList.contains('light');
+    console.log("se hizo click en el botón: ", esClaro)
     aplicarTema(esClaro ? 'oscuro' : 'claro');
   };
 }
