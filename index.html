@@ -1105,6 +1105,8 @@
       if (el) el.classList.remove('oculto');
       // Guardar pantalla actual para restaurar al recargar
       try { localStorage.setItem('pantalla_actual', pantalla); } catch(e) {}
+      // Marcar que la app está activa (para no confundir con selector de archivos)
+      sessionStorage.setItem('app_activa', '1');
     }
 
     window.addEventListener('popstate', (e) => {
@@ -2396,6 +2398,9 @@
     // ── RESTAURAR PANTALLA ───────────────────────────────────────
     async function restaurarPantalla() {
       try {
+        // Si sessionStorage tiene app_activa, ya estamos en la sesión correcta
+        // Solo restaurar en recarga real (nueva sesión)
+        if (sessionStorage.getItem('app_activa')) return;
         const pantalla = localStorage.getItem('pantalla_actual');
         const grupoId  = localStorage.getItem('grupo_actual_id');
         const grupoNombre = localStorage.getItem('grupo_actual_nombre');

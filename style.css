@@ -445,6 +445,13 @@ select option { background: var(--surface2); }
 .tab-content {
   width: 100%;
 }
+/* Tabs que no son chat necesitan margin-top para no quedar bajo el topbar fijo */
+.tab-content:not(#tab-chat) {
+  margin-top: 110px;
+  padding-bottom: 80px;
+  overflow-y: auto;
+  min-height: calc(100vh - 110px);
+}
 
 /* ── Chat ── */
 #tab-chat {
