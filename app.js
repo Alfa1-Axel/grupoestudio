@@ -1016,8 +1016,8 @@
       $('perfil-telefono').value             = perfilData.telefono || '';
       $('perfil-mostrar-email').checked      = perfilData.mostrar_email || false;
       $('perfil-mostrar-tel').checked        = perfilData.mostrar_telefono || false;
-      $('stat-puntos').textContent           = perfilData.puntos || 0;
-      $('stat-nivel').textContent            = perfilData.nivel || 1;
+      if ($('stat-puntos')) $('stat-puntos').textContent = perfilData.puntos || 0;
+      if ($('stat-nivel'))  $('stat-nivel').textContent  = perfilData.nivel || 1;
     }
 
     $('btn-ir-perfil').onclick = async () => {
@@ -2399,7 +2399,6 @@
       $('resp-foto-preview').innerHTML = '';
       cargarRespuestas(preguntaActual.id);
     };
-
     // Registrar Service Worker (PWA)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
