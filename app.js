@@ -331,24 +331,36 @@
     }
 
     // ── NOTIFICACIONES ──────────────────────────────────────────
-    // Inicializar con el estado real del permiso
+    // ── NOTIFICACIONES (OneSignal) ──────────────────────────────
     let notifPermiso = ('Notification' in window) && Notification.permission === 'granted';
 
     async function pedirPermisoNotificaciones() {
       if (!('Notification' in window)) return;
       if (Notification.permission === 'granted') { notifPermiso = true; return; }
-      if (Notification.permission !== 'denied') {
+      // Pedir permiso via OneSignal si está disponible
+      if (window.OneSignal) {
+        try {
+          await window.OneSignal.Notifications.requestPermission();
+          notifPermiso = Notification.permission === 'granted';
+        } catch(e) {}
+      } else if (Notification.permission !== 'denied') {
         const result = await Notification.requestPermission();
         notifPermiso = result === 'granted';
       }
     }
 
     function mostrarNotificacion(autor, texto) {
-      if (!notifPermiso || document.visibilityState === 'visible') return;
-      new Notification('📚 ' + autor + ' en ' + (grupoActual?.nombre || 'GrupoEstudio'), {
-        body: texto,
-        icon: '/icons/icon-192.png'
-      });
+      if (document.visibilityState === 'visible') return;
+      // Usar API nativa del navegador (OneSignal maneja las push en background)
+      if (notifPermiso) {
+        try {
+          new Notification('📚 ' + autor + ' en ' + (grupoActual?.nombre || 'GrupoEstudio'), {
+            body: texto,
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-192.png'
+          });
+        } catch(e) {}
+      }
     }
 
     // ── ENTRAR AL GRUPO ─────────────────────────────────────────
@@ -2399,6 +2411,7 @@
       $('resp-foto-preview').innerHTML = '';
       cargarRespuestas(preguntaActual.id);
     };
+
     // Registrar Service Worker (PWA)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
