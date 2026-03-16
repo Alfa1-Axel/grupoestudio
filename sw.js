@@ -1,6 +1,3 @@
-// OneSignal maneja todas las notificaciones push
-importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
-
 const CACHE_NAME = 'grupoestudio-v4';
 const STATIC_ASSETS = ['/', '/index.html', '/style.css', '/app.js'];
 
