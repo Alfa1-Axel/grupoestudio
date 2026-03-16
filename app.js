@@ -1333,6 +1333,7 @@
     }
 
     async function actualizarBadgeNotif() {
+      if (!usuario?.email) return;
       const { count } = await db.from('notificaciones')
         .select('*', { count: 'exact', head: true })
         .eq('usuario_email', usuario.email)
@@ -1377,12 +1378,14 @@
     };
 
     $('btn-marcar-leidas').onclick = async () => {
+      if (!usuario?.email) return;
       await db.from('notificaciones').update({ leida: true }).eq('usuario_email', usuario.email).eq('leida', false);
       actualizarBadgeNotif();
       cargarNotificaciones();
     };
 
     async function cargarNotificaciones() {
+      if (!usuario?.email) return;
       const { data } = await db.from('notificaciones')
         .select('*')
         .eq('usuario_email', usuario.email)
@@ -2411,7 +2414,6 @@
       $('resp-foto-preview').innerHTML = '';
       cargarRespuestas(preguntaActual.id);
     };
-
     // Registrar Service Worker (PWA)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
