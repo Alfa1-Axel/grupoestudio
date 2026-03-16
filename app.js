@@ -331,7 +331,8 @@
     }
 
     // ── NOTIFICACIONES ──────────────────────────────────────────
-    let notifPermiso = false;
+    // Inicializar con el estado real del permiso
+    let notifPermiso = ('Notification' in window) && Notification.permission === 'granted';
 
     async function pedirPermisoNotificaciones() {
       if (!('Notification' in window)) return;
